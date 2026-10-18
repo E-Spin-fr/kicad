@@ -183,6 +183,7 @@
         {
           "td_allow_use_two_tracks": true,
           "td_curve_segcount": 0,
+          "td_enabled": false,
           "td_height_ratio": 1.0,
           "td_length_ratio": 0.5,
           "td_maxheight": 2.0,
@@ -194,6 +195,7 @@
         {
           "td_allow_use_two_tracks": true,
           "td_curve_segcount": 0,
+          "td_enabled": false,
           "td_height_ratio": 1.0,
           "td_length_ratio": 0.5,
           "td_maxheight": 2.0,
@@ -205,6 +207,7 @@
         {
           "td_allow_use_two_tracks": true,
           "td_curve_segcount": 0,
+          "td_enabled": false,
           "td_height_ratio": 1.0,
           "td_length_ratio": 0.5,
           "td_maxheight": 2.0,
@@ -492,6 +495,7 @@
       "pin_to_pin": "warning",
       "power_pin_not_driven": "error",
       "same_local_global_label": "warning",
+      "same_local_global_power": "warning",
       "similar_label_and_power": "warning",
       "similar_labels": "warning",
       "similar_power": "warning",
@@ -539,8 +543,8 @@
     "meta": {
       "version": 5
     },
-    "net_colors": null,
-    "netclass_assignments": null,
+    "net_colors": {},
+    "netclass_assignments": {},
     "netclass_patterns": []
   },
   "pcbnew": {
@@ -904,7 +908,7 @@
       {
         "filename": "handspinner_pcb.kicad_sch",
         "name": "handspinner_pcb",
-        "uuid": "00000000-0000-0000-0000-000000000000"
+        "uuid": "1a869adb-5382-4b7e-93d2-b3bfb4ae40eb"
       }
     ],
     "used_designators": "",
@@ -913,7 +917,7 @@
   "sheets": [
     [
       "1a869adb-5382-4b7e-93d2-b3bfb4ae40eb",
-      "Root"
+      "handspinner_pcb"
     ]
   ],
   "text_variables": {},
