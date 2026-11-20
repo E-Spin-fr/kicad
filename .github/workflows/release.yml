@@ -1,0 +1,217 @@
+name: KiCad Release, Production & Docs
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version label (leave blank for git short SHA)"
+        required: false
+        default: ""
+      create_release:
+        description: "Create a GitHub Release (always enabled on v* tag pushes)"
+        type: boolean
+        default: false
+      publish_pages:
+        description: "Publish docs & Interactive BOM to GitHub Pages"
+        type: boolean
+        default: true
+
+concurrency:
+  group: kicad-release-pages
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build Production, Priced BOM, iBOM & Docs
+    runs-on: ubuntu-latest
+    container:
+      image: kicad/kicad:10.0-full
+      options: --user 0:0
+
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      prefix: ${{ steps.meta.outputs.prefix }}
+      should_release: ${{ steps.meta.outputs.should_release }}
+      should_publish_pages: ${{ steps.meta.outputs.should_publish_pages }}
+      total_errors: ${{ steps.checks.outputs.total_errors }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve release metadata
+        id: meta
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VER="${GITHUB_REF_NAME}"
+            SHOULD_REL="true"
+            SHOULD_PAGES="true"
+          else
+            VER="${{ inputs.version }}"
+            if [ -z "$VER" ]; then
+              VER="dev-${GITHUB_SHA::7}"
+            fi
+            SHOULD_REL="${{ inputs.create_release }}"
+            SHOULD_PAGES="${{ inputs.publish_pages }}"
+          fi
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+          echo "prefix=e-spin-${VER}" >> "$GITHUB_OUTPUT"
+          echo "should_release=${SHOULD_REL}" >> "$GITHUB_OUTPUT"
+          echo "should_publish_pages=${SHOULD_PAGES}" >> "$GITHUB_OUTPUT"
+          echo "Building release version: ${VER}"
+
+      - name: Set up Python environment & InteractiveHtmlBom
+        run: |
+          python3 -m venv --system-site-packages /tmp/ci-venv
+          /tmp/ci-venv/bin/pip install --no-cache-dir -r ci/requirements.txt InteractiveHtmlBom
+
+      - name: Run Full ERC & DRC Checks (non-blocking, highly visible)
+        id: checks
+        run: |
+          /tmp/ci-venv/bin/python ci/scripts/parse_checks.py --out-dir build/reports
+          TOTAL_ERR=$(/tmp/ci-venv/bin/python -c "import json; d=json.load(open('build/reports/checks-summary.json')); print(d['erc']['errors'] + d['drc']['errors'])")
+          echo "total_errors=${TOTAL_ERR}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate JLCPCB PCBA Files (Gerbers, BOM, CPL)
+        run: |
+          /tmp/ci-venv/bin/python ci/scripts/build_jlcpcb.py \
+            --out-dir build/jlcpcb \
+            --version "${{ steps.meta.outputs.version }}"
+
+      - name: Fetch Live JLC/LCSC Pricing & Build Interactive BOM Calculator
+        run: |
+          /tmp/ci-venv/bin/python ci/scripts/jlc_bom_pricing.py \
+            --bom-json build/jlcpcb/bom-merged.json \
+            --out-dir build/bom \
+            --version "${{ steps.meta.outputs.version }}" \
+            --embedded
+
+      - name: Generate Interactive HTML BOM (iBOM)
+        run: |
+          mkdir -p build/ibom
+          INTERACTIVE_HTML_BOM_NO_DISPLAY=1 /tmp/ci-venv/bin/generate_interactive_bom \
+            --no-browser \
+            --dark-mode \
+            --extra-fields "LCSC Part,LCSC Part #" \
+            --dest-dir build/ibom \
+            --name-format "ibom" \
+            "$PWD/handspinner_pcb.kicad_pcb"
+
+      - name: Export Schematic PDF, 2D/3D Renders, STEP & Compile Docs Site
+        run: |
+          /tmp/ci-venv/bin/python ci/scripts/build_docs.py \
+            --out-dir build/docs \
+            --version "${{ steps.meta.outputs.version }}" \
+            --jlcpcb-dir build/jlcpcb \
+            --ibom build/ibom/ibom.html \
+            --bom-html build/bom/bom.html \
+            --bom-csv "build/bom/${{ steps.meta.outputs.prefix }}-bom-priced.csv" \
+            --checks-md build/reports/checks-summary.md \
+            --checks-json build/reports/checks-summary.json
+
+      - name: Package Release Assets & Release Notes
+        run: |
+          mkdir -p build/release-assets
+          PREFIX="${{ steps.meta.outputs.prefix }}"
+
+          cp build/jlcpcb/${PREFIX}-jlcpcb-production.zip build/release-assets/
+          cp build/jlcpcb/${PREFIX}-jlcpcb-gerbers.zip build/release-assets/
+          cp build/jlcpcb/${PREFIX}-jlcpcb-bom.csv build/release-assets/
+          cp build/jlcpcb/${PREFIX}-jlcpcb-cpl.csv build/release-assets/
+          cp build/bom/${PREFIX}-bom-priced.csv build/release-assets/
+          cp build/ibom/ibom.html "build/release-assets/${PREFIX}-ibom.html"
+          cp build/docs/${PREFIX}-schematic.pdf build/release-assets/
+          cp build/docs/${PREFIX}-renders.zip build/release-assets/
+          if [ -f "build/docs/${PREFIX}-3d.step" ]; then
+            cp "build/docs/${PREFIX}-3d.step" build/release-assets/
+          fi
+
+          /tmp/ci-venv/bin/python -c "
+          import zipfile, pathlib
+          with zipfile.ZipFile('build/release-assets/${PREFIX}-reports.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
+              for p in sorted(pathlib.Path('build/reports').iterdir()):
+                  if p.is_file():
+                      zf.write(p, arcname=p.name)
+          "
+
+          OWNER="${GITHUB_REPOSITORY%%/*}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          PAGES_URL="https://${OWNER,,}.github.io/${REPO}"
+
+          /tmp/ci-venv/bin/python ci/scripts/build_release_notes.py \
+            --version "${{ steps.meta.outputs.version }}" \
+            --checks-json build/reports/checks-summary.json \
+            --bom-json build/bom/bom-priced.json \
+            --pages-url "${PAGES_URL}" \
+            --out build/release-notes.md
+
+          chmod -R a+rX build/docs/site build/release-assets
+
+      - name: Upload Release Bundle Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle-${{ steps.meta.outputs.version }}
+          path: |
+            build/release-assets/
+            build/release-notes.md
+            build/bom/bom-priced.json
+          retention-days: 30
+
+      - name: Upload GitHub Pages Artifact
+        if: steps.meta.outputs.should_publish_pages == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/docs/site
+
+  deploy-pages:
+    name: Deploy Docs & iBOM to GitHub Pages
+    needs: build
+    if: needs.build.outputs.should_publish_pages == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  github-release:
+    name: Create GitHub Release
+    needs: build
+    if: needs.build.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: release-bundle-${{ needs.build.outputs.version }}
+          path: release-bundle
+
+      - name: Create or Update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.version }}
+          TOTAL_ERRORS: ${{ needs.build.outputs.total_errors }}
+        run: |
+          TITLE="E-Spin PCB ${TAG}"
+          if [ "${TOTAL_ERRORS:-0}" -gt 0 ]; then
+            TITLE="E-Spin PCB ${TAG} — ⚠️ ${TOTAL_ERRORS} ERC/DRC Error(s)"
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TITLE" --notes-file release-bundle/release-notes.md
+            gh release upload "$TAG" release-bundle/release-assets/* --clobber
+          else
+            gh release create "$TAG" \
+              release-bundle/release-assets/* \
+              --title "$TITLE" \
+              --notes-file release-bundle/release-notes.md
+          fi

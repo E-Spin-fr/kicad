@@ -38,3 +38,11 @@ fp-info-cache
 
 # Local project settings
 *.kicad_prl
+
+# Local CI/CD build outputs & Python bytecode
+build/
+__pycache__/
+*.py[cod]
+
+# Track CI rotation override table despite *.csv rule above
+!ci/jlcpcb-rotations.csv

@@ -1,0 +1,148 @@
+name: KiCad CI (Fast Checks & PR Visual Diff)
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
+
+concurrency:
+  group: kicad-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  checks:
+    name: ERC, DRC & Visual Diff
+    runs-on: ubuntu-latest
+    container:
+      image: kicad/kicad:10.0
+      options: --user 0:0
+
+    steps:
+      - name: Checkout head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python CI tools
+        run: |
+          python3 -m venv /tmp/ci-venv
+          /tmp/ci-venv/bin/pip install --no-cache-dir -r ci/requirements.txt
+
+      - name: Run ERC & DRC (KiCad 10)
+        id: checks
+        run: |
+          set +e
+          /tmp/ci-venv/bin/python ci/scripts/parse_checks.py --out-dir build/reports
+          rc=$?
+          echo "exit_code=${rc}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Audit BOM & LCSC Part Coverage
+        run: |
+          /tmp/ci-venv/bin/python ci/scripts/build_jlcpcb.py \
+            --out-dir build/bom-check \
+            --version "${GITHUB_SHA::7}" \
+            --bom-only
+
+      - name: Detect KiCad changes on PR
+        if: github.event_name == 'pull_request'
+        id: changed
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          CHANGED=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- '*.kicad_sch' '*.kicad_pcb' || true)
+          if [ -n "$CHANGED" ]; then
+            echo "kicad_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Changed KiCad files:"
+            echo "$CHANGED"
+          else
+            echo "kicad_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate Visual PCB / Schematic Diff (PR only)
+        if: github.event_name == 'pull_request' && steps.changed.outputs.kicad_changed == 'true'
+        run: |
+          if command -v apt-get >/dev/null 2>&1; then
+            apt-get update -qq && apt-get install -y -qq librsvg2-bin >/dev/null 2>&1 || true
+          fi
+          rm -rf /tmp/base_repo
+          git worktree add --detach /tmp/base_repo "origin/${{ github.base_ref }}"
+          /tmp/ci-venv/bin/python ci/scripts/visual_diff.py \
+            --base-dir /tmp/base_repo \
+            --head-dir "$PWD" \
+            --out-dir build/visual-diff
+          git worktree remove --force /tmp/base_repo || rm -rf /tmp/base_repo
+
+      - name: Upload ERC/DRC Reports Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: erc-drc-reports
+          path: |
+            build/reports/
+            build/bom-check/bom-merged.json
+          retention-days: 14
+
+      - name: Upload PR Visual Diff Artifact
+        if: github.event_name == 'pull_request' && steps.changed.outputs.kicad_changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diff
+          path: |
+            build/visual-diff/visual-diff.html
+            build/visual-diff/diff-summary.md
+            build/visual-diff/diff-summary.json
+            build/visual-diff/images/
+          retention-days: 14
+
+      - name: Post / Update PR Summary Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- kicad-ci-summary -->';
+            const parts = [marker];
+
+            if (fs.existsSync('build/reports/checks-summary.md')) {
+              parts.push(fs.readFileSync('build/reports/checks-summary.md', 'utf8'));
+            }
+            if (fs.existsSync('build/bom-check/bom-merged.json')) {
+              const bom = JSON.parse(fs.readFileSync('build/bom-check/bom-merged.json', 'utf8'));
+              let bomLine = `### BOM & LCSC Audit\n- **Components:** ${bom.total_components} placements (${bom.unique_parts} unique lines)`;
+              if (bom.missing_lcsc_groups > 0) {
+                bomLine += `\n- ⚠️ **Missing LCSC Part #:** ${bom.missing_lcsc_groups} line(s) (${bom.missing_lcsc_refs.join(', ')})`;
+              } else {
+                bomLine += `\n- ✅ All BOM lines have valid LCSC part numbers.`;
+              }
+              parts.push(bomLine);
+            }
+            if (fs.existsSync('build/visual-diff/diff-summary.md')) {
+              parts.push(fs.readFileSync('build/visual-diff/diff-summary.md', 'utf8'));
+            }
+
+            const body = parts.join('\n\n---\n\n');
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number, per_page: 100
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+      - name: Enforce Optional Strict Gate (if enabled in ci/config.yml)
+        if: steps.checks.outputs.exit_code != '0'
+        run: |
+          echo "::error::Strict ERC/DRC gate is enabled in ci/config.yml and errors were detected."
+          exit 1

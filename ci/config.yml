@@ -1,0 +1,73 @@
+# Central KiCad 10 CI/CD configuration
+project:
+  name: "e-spin"
+  display_name: "E-Spin PCB"
+  board_name: "handspinner_pcb"
+  schematic: "handspinner_pcb.kicad_sch"
+  pcb: "handspinner_pcb.kicad_pcb"
+  pro: "handspinner_pcb.kicad_pro"
+
+kicad:
+  # Lightweight image for fast push/PR checks (ERC/DRC/exports)
+  fast_image: "kicad/kicad:10.0"
+  # Full image for release builds (3D models + Python pcbnew for iBOM)
+  full_image: "kicad/kicad:10.0-full"
+
+checks:
+  # Non-blocking by default: errors never stop the build, but emit prominent
+  # GitHub annotations, PR/release CAUTION banners, and red docs alerts.
+  # Set to true if you later want strict failing gates.
+  fail_on_erc_errors: false
+  fail_on_drc_errors: false
+  drc_schematic_parity: true
+  drc_refill_zones: true
+
+jlcpcb:
+  # Copper + technical layers exported into Gerbers ZIP (2-layer board)
+  gerber_layers:
+    - "F.Cu"
+    - "B.Cu"
+    - "F.Paste"
+    - "B.Paste"
+    - "F.Silkscreen"
+    - "B.Silkscreen"
+    - "F.Mask"
+    - "B.Mask"
+    - "Edge.Cuts"
+  # Exclude components marked DNP in schematic/PCB
+  exclude_dnp: true
+  # Exclude through-hole footprints from CPL (set false if using JLC TH assembly)
+  cpl_smd_only: false
+  # Extended part feeder setup fee in USD per unique extended part (for BOM cost calculator)
+  extended_part_fee_usd: 3.0
+  # Local rotation/offset override table (applied on top of built-in JLCPCB rules)
+  rotations_file: "ci/jlcpcb-rotations.csv"
+  # Optional upstream rotation database downloaded during CI if online
+  upstream_rotations_url: "https://raw.githubusercontent.com/matthewlai/JLCKicadTools/master/jlc_kicad_tools/cpl_rotations_db.csv"
+
+renders:
+  width: 1600
+  height: 1200
+  quality: "raytrace_post"
+  pr_diff_width: 1200
+  pr_diff_height: 900
+  pr_diff_quality: "basic"
+  views:
+    - name: "top"
+      side: "top"
+      rotate: ""
+    - name: "bottom"
+      side: "bottom"
+      rotate: ""
+    - name: "iso-top"
+      side: "top"
+      rotate: "-35,0,25"
+    - name: "iso-bottom"
+      side: "bottom"
+      rotate: "35,0,-25"
+
+docs:
+  # Directory containing your own manual Markdown docs and images
+  manual_dir: "docs"
+  # Optional changelog file included in GitHub Releases if present
+  changelog: "docs/CHANGELOG.md"
