@@ -30,25 +30,29 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python CI tools
+      - name: Install Python CI dependencies
         run: |
-          python3 -m venv /tmp/ci-venv
-          /tmp/ci-venv/bin/pip install --no-cache-dir -r ci/requirements.txt
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends \
+            python3-yaml \
+            python3-pil \
+            python3-markdown
 
       - name: Run ERC & DRC (KiCad 10)
         id: checks
         run: |
           set +e
-          /tmp/ci-venv/bin/python ci/scripts/parse_checks.py --out-dir build/reports
+          python3 ci/scripts/parse_checks.py --out-dir build/reports
           rc=$?
           echo "exit_code=${rc}" >> "$GITHUB_OUTPUT"
           exit 0
 
       - name: Audit BOM & LCSC Part Coverage
         run: |
-          /tmp/ci-venv/bin/python ci/scripts/build_jlcpcb.py \
+          SHORT_SHA=$(printf '%s' "$GITHUB_SHA" | cut -c1-7)
+          python3 ci/scripts/build_jlcpcb.py \
             --out-dir build/bom-check \
-            --version "${GITHUB_SHA::7}" \
+            --version "${SHORT_SHA}" \
             --bom-only
 
       - name: Detect KiCad changes on PR
@@ -68,12 +72,10 @@ jobs:
       - name: Generate Visual PCB / Schematic Diff (PR only)
         if: github.event_name == 'pull_request' && steps.changed.outputs.kicad_changed == 'true'
         run: |
-          if command -v apt-get >/dev/null 2>&1; then
-            apt-get update -qq && apt-get install -y -qq librsvg2-bin >/dev/null 2>&1 || true
-          fi
+          apt-get install -y -qq --no-install-recommends librsvg2-bin >/dev/null 2>&1 || true
           rm -rf /tmp/base_repo
           git worktree add --detach /tmp/base_repo "origin/${{ github.base_ref }}"
-          /tmp/ci-venv/bin/python ci/scripts/visual_diff.py \
+          python3 ci/scripts/visual_diff.py \
             --base-dir /tmp/base_repo \
             --head-dir "$PWD" \
             --out-dir build/visual-diff

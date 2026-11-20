@@ -50,45 +50,54 @@ jobs:
       - name: Resolve release metadata
         id: meta
         run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            VER="${GITHUB_REF_NAME}"
-            SHOULD_REL="true"
-            SHOULD_PAGES="true"
-          else
-            VER="${{ inputs.version }}"
-            if [ -z "$VER" ]; then
-              VER="dev-${GITHUB_SHA::7}"
-            fi
-            SHOULD_REL="${{ inputs.create_release }}"
-            SHOULD_PAGES="${{ inputs.publish_pages }}"
-          fi
+          case "${GITHUB_REF}" in
+            refs/tags/*)
+              VER="${GITHUB_REF_NAME}"
+              SHOULD_REL="true"
+              SHOULD_PAGES="true"
+              ;;
+            *)
+              VER="${{ inputs.version }}"
+              if [ -z "$VER" ]; then
+                SHORT_SHA=$(printf '%s' "$GITHUB_SHA" | cut -c1-7)
+                VER="dev-${SHORT_SHA}"
+              fi
+              SHOULD_REL="${{ inputs.create_release }}"
+              SHOULD_PAGES="${{ inputs.publish_pages }}"
+              ;;
+          esac
           echo "version=${VER}" >> "$GITHUB_OUTPUT"
           echo "prefix=e-spin-${VER}" >> "$GITHUB_OUTPUT"
           echo "should_release=${SHOULD_REL}" >> "$GITHUB_OUTPUT"
           echo "should_publish_pages=${SHOULD_PAGES}" >> "$GITHUB_OUTPUT"
           echo "Building release version: ${VER}"
 
-      - name: Set up Python environment & InteractiveHtmlBom
+      - name: Install Python CI tools & InteractiveHtmlBom
         run: |
-          python3 -m venv --system-site-packages /tmp/ci-venv
-          /tmp/ci-venv/bin/pip install --no-cache-dir -r ci/requirements.txt InteractiveHtmlBom
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends \
+            python3-yaml \
+            python3-pil \
+            python3-markdown \
+            python3-pip
+          pip3 install --break-system-packages --no-cache-dir InteractiveHtmlBom
 
       - name: Run Full ERC & DRC Checks (non-blocking, highly visible)
         id: checks
         run: |
-          /tmp/ci-venv/bin/python ci/scripts/parse_checks.py --out-dir build/reports
-          TOTAL_ERR=$(/tmp/ci-venv/bin/python -c "import json; d=json.load(open('build/reports/checks-summary.json')); print(d['erc']['errors'] + d['drc']['errors'])")
+          python3 ci/scripts/parse_checks.py --out-dir build/reports
+          TOTAL_ERR=$(python3 -c "import json; d=json.load(open('build/reports/checks-summary.json')); print(d['erc']['errors'] + d['drc']['errors'])")
           echo "total_errors=${TOTAL_ERR}" >> "$GITHUB_OUTPUT"
 
       - name: Generate JLCPCB PCBA Files (Gerbers, BOM, CPL)
         run: |
-          /tmp/ci-venv/bin/python ci/scripts/build_jlcpcb.py \
+          python3 ci/scripts/build_jlcpcb.py \
             --out-dir build/jlcpcb \
             --version "${{ steps.meta.outputs.version }}"
 
       - name: Fetch Live JLC/LCSC Pricing & Build Interactive BOM Calculator
         run: |
-          /tmp/ci-venv/bin/python ci/scripts/jlc_bom_pricing.py \
+          python3 ci/scripts/jlc_bom_pricing.py \
             --bom-json build/jlcpcb/bom-merged.json \
             --out-dir build/bom \
             --version "${{ steps.meta.outputs.version }}" \
@@ -97,7 +106,7 @@ jobs:
       - name: Generate Interactive HTML BOM (iBOM)
         run: |
           mkdir -p build/ibom
-          INTERACTIVE_HTML_BOM_NO_DISPLAY=1 /tmp/ci-venv/bin/generate_interactive_bom \
+          INTERACTIVE_HTML_BOM_NO_DISPLAY=1 generate_interactive_bom \
             --no-browser \
             --dark-mode \
             --extra-fields "LCSC Part,LCSC Part #" \
@@ -107,7 +116,7 @@ jobs:
 
       - name: Export Schematic PDF, 2D/3D Renders, STEP & Compile Docs Site
         run: |
-          /tmp/ci-venv/bin/python ci/scripts/build_docs.py \
+          python3 ci/scripts/build_docs.py \
             --out-dir build/docs \
             --version "${{ steps.meta.outputs.version }}" \
             --jlcpcb-dir build/jlcpcb \
@@ -122,31 +131,25 @@ jobs:
           mkdir -p build/release-assets
           PREFIX="${{ steps.meta.outputs.prefix }}"
 
-          cp build/jlcpcb/${PREFIX}-jlcpcb-production.zip build/release-assets/
-          cp build/jlcpcb/${PREFIX}-jlcpcb-gerbers.zip build/release-assets/
-          cp build/jlcpcb/${PREFIX}-jlcpcb-bom.csv build/release-assets/
-          cp build/jlcpcb/${PREFIX}-jlcpcb-cpl.csv build/release-assets/
-          cp build/bom/${PREFIX}-bom-priced.csv build/release-assets/
+          cp "build/jlcpcb/${PREFIX}-jlcpcb-production.zip" build/release-assets/
+          cp "build/jlcpcb/${PREFIX}-jlcpcb-gerbers.zip" build/release-assets/
+          cp "build/jlcpcb/${PREFIX}-jlcpcb-bom.csv" build/release-assets/
+          cp "build/jlcpcb/${PREFIX}-jlcpcb-cpl.csv" build/release-assets/
+          cp "build/bom/${PREFIX}-bom-priced.csv" build/release-assets/
           cp build/ibom/ibom.html "build/release-assets/${PREFIX}-ibom.html"
-          cp build/docs/${PREFIX}-schematic.pdf build/release-assets/
-          cp build/docs/${PREFIX}-renders.zip build/release-assets/
+          cp "build/docs/${PREFIX}-schematic.pdf" build/release-assets/
+          cp "build/docs/${PREFIX}-renders.zip" build/release-assets/
           if [ -f "build/docs/${PREFIX}-3d.step" ]; then
             cp "build/docs/${PREFIX}-3d.step" build/release-assets/
           fi
 
-          /tmp/ci-venv/bin/python -c "
-          import zipfile, pathlib
-          with zipfile.ZipFile('build/release-assets/${PREFIX}-reports.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
-              for p in sorted(pathlib.Path('build/reports').iterdir()):
-                  if p.is_file():
-                      zf.write(p, arcname=p.name)
-          "
+          python3 -c "import zipfile, pathlib; zf = zipfile.ZipFile('build/release-assets/${PREFIX}-reports.zip', 'w', zipfile.ZIP_DEFLATED); [zf.write(p, arcname=p.name) for p in sorted(pathlib.Path('build/reports').iterdir()) if p.is_file()]; zf.close()"
 
-          OWNER="${GITHUB_REPOSITORY%%/*}"
-          REPO="${GITHUB_REPOSITORY#*/}"
-          PAGES_URL="https://${OWNER,,}.github.io/${REPO}"
+          OWNER=$(printf '%s' "$GITHUB_REPOSITORY" | cut -d/ -f1 | tr '[:upper:]' '[:lower:]')
+          REPO=$(printf '%s' "$GITHUB_REPOSITORY" | cut -d/ -f2)
+          PAGES_URL="https://${OWNER}.github.io/${REPO}"
 
-          /tmp/ci-venv/bin/python ci/scripts/build_release_notes.py \
+          python3 ci/scripts/build_release_notes.py \
             --version "${{ steps.meta.outputs.version }}" \
             --checks-json build/reports/checks-summary.json \
             --bom-json build/bom/bom-priced.json \
