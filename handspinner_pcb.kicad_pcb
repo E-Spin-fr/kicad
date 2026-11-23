@@ -3300,6 +3300,19 @@
 				)
 			)
 		)
+		(property "LCSC Part #" "C25900"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "c93f54a3-d4a0-4ffd-be3a-6d13f9cd24ab")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(property ki_fp_filters "R_*")
 		(path "/50cacc40-be95-4afa-81bb-a1003ecb564d")
 		(sheetname "/")
@@ -6643,19 +6656,6 @@
 			(layer "F.Fab")
 			(hide yes)
 			(uuid "0838b4a5-ffaa-40fe-be59-079179a9f186")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "JLCPCB Part #" "C2286"
-			(at 0 0 270)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "d87325f8-c887-48e5-9260-3a287c12d20d")
 			(effects
 				(font
 					(size 1 1)
@@ -11758,6 +11758,19 @@
 				)
 			)
 		)
+		(property "LCSC Part #" "C25900"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "a549a0e3-fde2-4a3e-b829-a492407a793e")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(property ki_fp_filters "R_*")
 		(path "/63ff1274-c84d-44ad-94c5-2b8866baf933")
 		(sheetname "/")
@@ -13586,7 +13599,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C2286"
+		(property "LCSC Part #" "C2286"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -21903,7 +21916,23 @@
 		(width 0.2)
 		(layer "F.Cu")
 		(net "GND")
-		(uuid "6b54d926-df0e-4427-a2f1-e7bd2b30b80e")
+		(uuid "65b75e34-9d4f-4a3f-a6c5-97ad00d63411")
+	)
+	(segment
+		(start 95.3 102.3)
+		(end 95.4 102.4)
+		(width 0.2)
+		(layer "F.Cu")
+		(net "GND")
+		(uuid "6f32a9d0-b5e8-4098-8f08-ee801afe50ac")
+	)
+	(segment
+		(start 94.8 102.3)
+		(end 95.3 102.3)
+		(width 0.2)
+		(layer "F.Cu")
+		(net "GND")
+		(uuid "6fa84e95-718c-43c6-ab0e-2ff3b98a8737")
 	)
 	(segment
 		(start 81.9 103.75)
@@ -22016,14 +22045,6 @@
 		(layer "F.Cu")
 		(net "GND")
 		(uuid "a3c74d4f-4d9c-448d-b7b9-73a45f110184")
-	)
-	(segment
-		(start 95.2 102.2)
-		(end 95.4 102.4)
-		(width 0.2)
-		(layer "F.Cu")
-		(net "GND")
-		(uuid "aa84066d-cf55-4925-9b6e-9729941202d7")
 	)
 	(segment
 		(start 83 102.65)
@@ -22296,7 +22317,7 @@
 		(uuid "236ce04a-47ad-4331-97b5-30affffc5d49")
 	)
 	(via
-		(at 95.2 102.2)
+		(at 94.8 102.3)
 		(size 0.6)
 		(drill 0.3)
 		(layers "F.Cu" "B.Cu")
@@ -22604,6 +22625,15 @@
 		(uuid "6c990b2d-650e-4009-a2e7-5ba303b35370")
 	)
 	(via
+		(at 98.4 104.9)
+		(size 0.6)
+		(drill 0.3)
+		(layers "F.Cu" "B.Cu")
+		(free yes)
+		(net "GND")
+		(uuid "6ce8f85b-64ab-47e4-a0fb-db7b9573e3e8")
+	)
+	(via
 		(at 121.512423 96.031122)
 		(size 0.6)
 		(drill 0.3)
@@ -22827,25 +22857,6 @@
 		(layers "F.Cu" "B.Cu")
 		(net "GND")
 		(uuid "b0dd3778-6962-4375-92f7-afa3e8e1de91")
-	)
-	(via
-		(at 97.6 104.75)
-		(size 0.6)
-		(drill 0.3)
-		(layers "F.Cu" "B.Cu")
-		(free yes)
-		(capping no)
-		(covering
-			(front no)
-			(back no)
-		)
-		(plugging
-			(front no)
-			(back no)
-		)
-		(filling no)
-		(net "GND")
-		(uuid "b261af5a-dc06-4ebd-bdbb-f72171893393")
 	)
 	(via
 		(at 133.512423 111.619578)
@@ -23139,22 +23150,6 @@
 		(layers "F.Cu" "B.Cu")
 		(net "GND")
 		(uuid "ffc0f14c-c2d3-4931-94f7-d8a5f1a5bd4b")
-	)
-	(segment
-		(start 97.6 104.8)
-		(end 98.3 105.5)
-		(width 0.3)
-		(layer "B.Cu")
-		(net "GND")
-		(uuid "1e3e0fe2-4144-4d54-ba80-32ed5652d892")
-	)
-	(segment
-		(start 97.6 104.75)
-		(end 97.6 104.8)
-		(width 0.2)
-		(layer "B.Cu")
-		(net "GND")
-		(uuid "84c3b243-c1f3-407b-9b71-0983f3621e6f")
 	)
 	(segment
 		(start 154.425 111)
