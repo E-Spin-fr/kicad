@@ -1,0 +1,19 @@
+{
+  "default": "latest",
+  "versions": [
+    {
+      "id": "latest",
+      "label": "main (latest)",
+      "type": "latest",
+      "sha": "2c66e79",
+      "updated_at": "2026-11-23 21:38 UTC"
+    },
+    {
+      "id": "main",
+      "label": "main",
+      "type": "branch",
+      "sha": "2c66e79",
+      "updated_at": "2026-11-23 21:38 UTC"
+    }
+  ]
+}

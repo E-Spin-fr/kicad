@@ -1,0 +1,3816 @@
+{
+  "project": "e-spin",
+  "display_name": "E-Spin PCB",
+  "board": "handspinner_pcb",
+  "version": "main",
+  "fetched_at": "2026-11-23 21:37 UTC",
+  "extended_part_fee_usd": 3.0,
+  "total_components": 65,
+  "unique_parts": 35,
+  "missing_lcsc_groups": 0,
+  "summaries": {
+    "1": {
+      "boards": 1,
+      "parts_total_usd": 8.9992,
+      "parts_per_board_usd": 8.9992,
+      "extended_parts_count": 16,
+      "feeder_fees_usd": 48.0,
+      "grand_total_usd": 56.9992,
+      "grand_per_board_usd": 56.9992,
+      "in_stock_lines": 34,
+      "insufficient_lines": 1,
+      "missing_lcsc_lines": 0,
+      "unpriced_lines": 0
+    },
+    "5": {
+      "boards": 5,
+      "parts_total_usd": 44.996,
+      "parts_per_board_usd": 8.9992,
+      "extended_parts_count": 16,
+      "feeder_fees_usd": 48.0,
+      "grand_total_usd": 92.996,
+      "grand_per_board_usd": 18.5992,
+      "in_stock_lines": 34,
+      "insufficient_lines": 1,
+      "missing_lcsc_lines": 0,
+      "unpriced_lines": 0
+    },
+    "10": {
+      "boards": 10,
+      "parts_total_usd": 80.632,
+      "parts_per_board_usd": 8.0632,
+      "extended_parts_count": 16,
+      "feeder_fees_usd": 48.0,
+      "grand_total_usd": 128.632,
+      "grand_per_board_usd": 12.8632,
+      "in_stock_lines": 34,
+      "insufficient_lines": 1,
+      "missing_lcsc_lines": 0,
+      "unpriced_lines": 0
+    },
+    "50": {
+      "boards": 50,
+      "parts_total_usd": 354.565,
+      "parts_per_board_usd": 7.0913,
+      "extended_parts_count": 16,
+      "feeder_fees_usd": 48.0,
+      "grand_total_usd": 402.565,
+      "grand_per_board_usd": 8.0513,
+      "in_stock_lines": 34,
+      "insufficient_lines": 1,
+      "missing_lcsc_lines": 0,
+      "unpriced_lines": 0
+    },
+    "100": {
+      "boards": 100,
+      "parts_total_usd": 636.7,
+      "parts_per_board_usd": 6.367,
+      "extended_parts_count": 16,
+      "feeder_fees_usd": 48.0,
+      "grand_total_usd": 684.7,
+      "grand_per_board_usd": 6.847,
+      "in_stock_lines": 34,
+      "insufficient_lines": 1,
+      "missing_lcsc_lines": 0,
+      "unpriced_lines": 0
+    }
+  },
+  "items": [
+    {
+      "comment": "100n",
+      "designators": [
+        "C1",
+        "C3",
+        "C4",
+        "C5",
+        "C7",
+        "C9",
+        "C11",
+        "C20",
+        "C21",
+        "C22"
+      ],
+      "designator_str": "C1,C3,C4,C5,C7,C9,C11,C20,C21,C22",
+      "footprint": "C_0603_1608Metric",
+      "footprint_full": "Capacitor_SMD:C_0603_1608Metric",
+      "quantity": 10,
+      "lcsc": "C14663",
+      "datasheet": "",
+      "layers": [
+        "B.Cu",
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "CC0603KRX7R9BB104",
+      "brand": "YAGEO",
+      "description": "100nF 50V X7R \u00b110% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 52121777,
+      "lcsc_stock": 0,
+      "stock": 52121777,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0052
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0041
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0035
+        },
+        {
+          "min_qty": 8000,
+          "unit_price": 0.0032
+        },
+        {
+          "min_qty": 48000,
+          "unit_price": 0.0029
+        },
+        {
+          "min_qty": 100000,
+          "unit_price": 0.0027
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.0052
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0041
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0036
+        },
+        {
+          "min_qty": 8000,
+          "unit_price": 0.0032
+        },
+        {
+          "min_qty": 48000,
+          "unit_price": 0.0029
+        },
+        {
+          "min_qty": 100000,
+          "unit_price": 0.0027
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0052
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0041
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0035
+        },
+        {
+          "min_qty": 8000,
+          "unit_price": 0.0032
+        },
+        {
+          "min_qty": 48000,
+          "unit_price": 0.0029
+        },
+        {
+          "min_qty": 100000,
+          "unit_price": 0.0027
+        }
+      ],
+      "product_image": "part-images/C14663.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2211101700_YAGEO-CC0603KRX7R9BB104_C14663.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C14663.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C14663"
+    },
+    {
+      "comment": "10u",
+      "designators": [
+        "C2",
+        "C13",
+        "C16",
+        "C26"
+      ],
+      "designator_str": "C2,C13,C16,C26",
+      "footprint": "C_0603_1608Metric",
+      "footprint_full": "Capacitor_SMD:C_0603_1608Metric",
+      "quantity": 4,
+      "lcsc": "C19702",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "CL10A106KP8NNNC",
+      "brand": "Samsung Electro-Mechanics",
+      "description": "10V 10uF X5R \u00b110% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 9660822,
+      "lcsc_stock": 4000,
+      "stock": 9660822,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0167
+        },
+        {
+          "min_qty": 200,
+          "unit_price": 0.0133
+        },
+        {
+          "min_qty": 600,
+          "unit_price": 0.0118
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0106
+        },
+        {
+          "min_qty": 8000,
+          "unit_price": 0.0102
+        },
+        {
+          "min_qty": 20000,
+          "unit_price": 0.0099
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 20,
+          "unit_price": 0.0169
+        },
+        {
+          "min_qty": 200,
+          "unit_price": 0.0135
+        },
+        {
+          "min_qty": 600,
+          "unit_price": 0.0119
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0107
+        },
+        {
+          "min_qty": 8000,
+          "unit_price": 0.0103
+        },
+        {
+          "min_qty": 20000,
+          "unit_price": 0.01
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0167
+        },
+        {
+          "min_qty": 200,
+          "unit_price": 0.0133
+        },
+        {
+          "min_qty": 600,
+          "unit_price": 0.0118
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0106
+        },
+        {
+          "min_qty": 8000,
+          "unit_price": 0.0102
+        },
+        {
+          "min_qty": 20000,
+          "unit_price": 0.0099
+        }
+      ],
+      "product_image": "part-images/C19702.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL10A106KP8NNNC_C19702.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL10A106KP8NNNC_C19702.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C19702.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C19702"
+    },
+    {
+      "comment": "2.2u",
+      "designators": [
+        "C14",
+        "C24"
+      ],
+      "designator_str": "C14,C24",
+      "footprint": "C_0603_1608Metric",
+      "footprint_full": "Capacitor_SMD:C_0603_1608Metric",
+      "quantity": 2,
+      "lcsc": "C12530",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "CL05A225MQ5NSNC",
+      "brand": "Samsung Electro-Mechanics",
+      "description": "2.2uF 6.3V X5R \u00b120% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 3003060,
+      "lcsc_stock": 1246800,
+      "stock": 3003060,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.005
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0037
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0031
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0027
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0025
+        },
+        {
+          "min_qty": 100000,
+          "unit_price": 0.0024
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.005
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0037
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0031
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0027
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0025
+        },
+        {
+          "min_qty": 100000,
+          "unit_price": 0.0024
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.005
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0037
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0031
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0027
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0025
+        },
+        {
+          "min_qty": 100000,
+          "unit_price": 0.0024
+        }
+      ],
+      "product_image": "part-images/C12530.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05A225MQ5NSNC_C12530.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05A225MQ5NSNC_C12530.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C12530.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C12530"
+    },
+    {
+      "comment": "4.7u",
+      "designators": [
+        "C15",
+        "C25"
+      ],
+      "designator_str": "C15,C25",
+      "footprint": "C_0603_1608Metric",
+      "footprint_full": "Capacitor_SMD:C_0603_1608Metric",
+      "quantity": 2,
+      "lcsc": "C19666",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "CL10A475KO8NNNC",
+      "brand": "Samsung Electro-Mechanics",
+      "description": "16V 4.7uF X5R \u00b110% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 3058011,
+      "lcsc_stock": 0,
+      "stock": 3058011,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0169
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.0132
+        },
+        {
+          "min_qty": 300,
+          "unit_price": 0.0115
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0103
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0098
+        },
+        {
+          "min_qty": 8000,
+          "unit_price": 0.0095
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 10,
+          "unit_price": 0.017
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.0133
+        },
+        {
+          "min_qty": 300,
+          "unit_price": 0.0116
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0104
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0099
+        },
+        {
+          "min_qty": 8000,
+          "unit_price": 0.0095
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0169
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.0132
+        },
+        {
+          "min_qty": 300,
+          "unit_price": 0.0115
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0103
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0098
+        },
+        {
+          "min_qty": 8000,
+          "unit_price": 0.0095
+        }
+      ],
+      "product_image": "part-images/C19666.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL10A475KO8NNNC_C19666.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL10A475KO8NNNC_C19666.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C19666.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C19666"
+    },
+    {
+      "comment": "1u",
+      "designators": [
+        "C19"
+      ],
+      "designator_str": "C19",
+      "footprint": "C_0603_1608Metric",
+      "footprint_full": "Capacitor_SMD:C_0603_1608Metric",
+      "quantity": 1,
+      "lcsc": "C15849",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "CL10A105KB8NNNC",
+      "brand": "Samsung Electro-Mechanics",
+      "description": "1uF 50V X5R \u00b110% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 11978079,
+      "lcsc_stock": 0,
+      "stock": 11978079,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.014
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.011
+        },
+        {
+          "min_qty": 1500,
+          "unit_price": 0.0096
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0086
+        },
+        {
+          "min_qty": 24000,
+          "unit_price": 0.0082
+        },
+        {
+          "min_qty": 48000,
+          "unit_price": 0.0079
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 50,
+          "unit_price": 0.0142
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0111
+        },
+        {
+          "min_qty": 1500,
+          "unit_price": 0.0097
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0086
+        },
+        {
+          "min_qty": 24000,
+          "unit_price": 0.0082
+        },
+        {
+          "min_qty": 48000,
+          "unit_price": 0.0079
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.014
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.011
+        },
+        {
+          "min_qty": 1500,
+          "unit_price": 0.0096
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0086
+        },
+        {
+          "min_qty": 24000,
+          "unit_price": 0.0082
+        },
+        {
+          "min_qty": 48000,
+          "unit_price": 0.0079
+        }
+      ],
+      "product_image": "part-images/C15849.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL10A105KB8NNNC_C15849.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL10A105KB8NNNC_C15849.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C15849.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C15849"
+    },
+    {
+      "comment": "2.2u",
+      "designators": [
+        "C23"
+      ],
+      "designator_str": "C23",
+      "footprint": "C_0402_1005Metric",
+      "footprint_full": "Capacitor_SMD:C_0402_1005Metric",
+      "quantity": 1,
+      "lcsc": "C12530",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "CL05A225MQ5NSNC",
+      "brand": "Samsung Electro-Mechanics",
+      "description": "2.2uF 6.3V X5R \u00b120% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 3003060,
+      "lcsc_stock": 1246800,
+      "stock": 3003060,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.005
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0037
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0031
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0027
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0025
+        },
+        {
+          "min_qty": 100000,
+          "unit_price": 0.0024
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.005
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0037
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0031
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0027
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0025
+        },
+        {
+          "min_qty": 100000,
+          "unit_price": 0.0024
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.005
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0037
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0031
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0027
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0025
+        },
+        {
+          "min_qty": 100000,
+          "unit_price": 0.0024
+        }
+      ],
+      "product_image": "part-images/C12530.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05A225MQ5NSNC_C12530.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05A225MQ5NSNC_C12530.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C12530.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C12530"
+    },
+    {
+      "comment": "LED",
+      "designators": [
+        "D1"
+      ],
+      "designator_str": "D1",
+      "footprint": "LED_0603_1608Metric",
+      "footprint_full": "LED_SMD:LED_0603_1608Metric",
+      "quantity": 1,
+      "lcsc": "C12624",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "KT-0603G",
+      "brand": "Hubei KENTO Elec",
+      "description": "-40\u2103~+85\u2103 1.6mm x 0.8mm square LED 100mW 120\u00b0 3.1V 430mcd 513nm~528nm 525nm 5mA Discrete Diode Emerald Green Water Clear 0603 LED Indication - Discrete ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 193451,
+      "lcsc_stock": 173900,
+      "stock": 193451,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0119
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0093
+        },
+        {
+          "min_qty": 1500,
+          "unit_price": 0.0078
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.007
+        },
+        {
+          "min_qty": 24000,
+          "unit_price": 0.0062
+        },
+        {
+          "min_qty": 48000,
+          "unit_price": 0.0058
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 50,
+          "unit_price": 0.012
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0094
+        },
+        {
+          "min_qty": 1500,
+          "unit_price": 0.0079
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.007
+        },
+        {
+          "min_qty": 24000,
+          "unit_price": 0.0063
+        },
+        {
+          "min_qty": 48000,
+          "unit_price": 0.0058
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0119
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0093
+        },
+        {
+          "min_qty": 1500,
+          "unit_price": 0.0078
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.007
+        },
+        {
+          "min_qty": 24000,
+          "unit_price": 0.0062
+        },
+        {
+          "min_qty": 48000,
+          "unit_price": 0.0058
+        }
+      ],
+      "product_image": "part-images/C12624.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_1806151818_Hubei-KENTO-Elec-KT-0603G_C12624.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_1806151818_Hubei-KENTO-Elec-KT-0603G_C12624.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C12624.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C12624"
+    },
+    {
+      "comment": "B5819W SL",
+      "designators": [
+        "D2",
+        "D3"
+      ],
+      "designator_str": "D2,D3",
+      "footprint": "D_SOD-123",
+      "footprint_full": "Diode_SMD:D_SOD-123",
+      "quantity": 2,
+      "lcsc": "C8598",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "B5819W SL",
+      "brand": "Jiangsu Changjing Electronics Technology Co., Ltd.",
+      "description": "1A 40V 600mV@1A 9A Independent SOD-123 Schottky Diodes ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 951892,
+      "lcsc_stock": 247820,
+      "stock": 951892,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0251
+        },
+        {
+          "min_qty": 200,
+          "unit_price": 0.0192
+        },
+        {
+          "min_qty": 600,
+          "unit_price": 0.0166
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0146
+        },
+        {
+          "min_qty": 9000,
+          "unit_price": 0.0138
+        },
+        {
+          "min_qty": 21000,
+          "unit_price": 0.0133
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 20,
+          "unit_price": 0.025
+        },
+        {
+          "min_qty": 200,
+          "unit_price": 0.019
+        },
+        {
+          "min_qty": 600,
+          "unit_price": 0.0164
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0144
+        },
+        {
+          "min_qty": 9000,
+          "unit_price": 0.0136
+        },
+        {
+          "min_qty": 21000,
+          "unit_price": 0.013
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0251
+        },
+        {
+          "min_qty": 200,
+          "unit_price": 0.0192
+        },
+        {
+          "min_qty": 600,
+          "unit_price": 0.0166
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0146
+        },
+        {
+          "min_qty": 9000,
+          "unit_price": 0.0138
+        },
+        {
+          "min_qty": 21000,
+          "unit_price": 0.0133
+        }
+      ],
+      "product_image": "part-images/C8598.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Jiangsu-Changjing-Electronics-Technology-Co---Ltd--B5819W-SL_C8598.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Jiangsu-Changjing-Electronics-Technology-Co---Ltd--B5819W-SL_C8598.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C8598.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C8598"
+    },
+    {
+      "comment": "LED",
+      "designators": [
+        "D4"
+      ],
+      "designator_str": "D4",
+      "footprint": "LED_0603_1608Metric",
+      "footprint_full": "LED_SMD:LED_0603_1608Metric",
+      "quantity": 1,
+      "lcsc": "C2286",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "KT-0603R",
+      "brand": "Hubei KENTO Elec",
+      "description": "-40\u2103~+85\u2103 1.6mm x 0.8mm square LED 1.8V~2.4V 120\u00b0 20mA 300mcd 40mW 615nm~630nm 645nm Discrete Diode Red Water Clear 0603 LED Indication - Discrete ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 8330872,
+      "lcsc_stock": 5623100,
+      "stock": 8330872,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0077
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0059
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0046
+        },
+        {
+          "min_qty": 8000,
+          "unit_price": 0.004
+        },
+        {
+          "min_qty": 48000,
+          "unit_price": 0.0037
+        },
+        {
+          "min_qty": 100000,
+          "unit_price": 0.0036
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.0077
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0059
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0046
+        },
+        {
+          "min_qty": 8000,
+          "unit_price": 0.004
+        },
+        {
+          "min_qty": 48000,
+          "unit_price": 0.0038
+        },
+        {
+          "min_qty": 100000,
+          "unit_price": 0.0036
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0077
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0059
+        },
+        {
+          "min_qty": 4000,
+          "unit_price": 0.0046
+        },
+        {
+          "min_qty": 8000,
+          "unit_price": 0.004
+        },
+        {
+          "min_qty": 48000,
+          "unit_price": 0.0037
+        },
+        {
+          "min_qty": 100000,
+          "unit_price": 0.0036
+        }
+      ],
+      "product_image": "part-images/C2286.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_1810231112_Hubei-KENTO-Elec-KT-0603R_C2286.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_1810231112_Hubei-KENTO-Elec-KT-0603R_C2286.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C2286.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C2286"
+    },
+    {
+      "comment": "X6511FRS-06-C85D30",
+      "designators": [
+        "J1",
+        "J2"
+      ],
+      "designator_str": "J1,J2",
+      "footprint": "HDR-SMD_6P-P2.54-H-F-L11.5",
+      "footprint_full": "X6511FRS-06-C85D30:HDR-SMD_6P-P2.54-H-F-L11.5",
+      "quantity": 2,
+      "lcsc": "C5142239",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "X6511FRS-06-C85D30",
+      "brand": "XKB Connection",
+      "description": "-40\u2103~+105\u2103 1 1x6P 2.54mm 3A 6P 8.5mm Side Square Hole Surface Mount, Right Angle SMD,P=2.54mm,\u5367\u8d34 Female Headers ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 3088,
+      "lcsc_stock": 985,
+      "stock": 3088,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.3705
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.2975
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.2663
+        },
+        {
+          "min_qty": 1200,
+          "unit_price": 0.2044
+        },
+        {
+          "min_qty": 2400,
+          "unit_price": 0.1871
+        },
+        {
+          "min_qty": 4800,
+          "unit_price": 0.1767
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 5,
+          "unit_price": 0.374
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.3004
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.2688
+        },
+        {
+          "min_qty": 1200,
+          "unit_price": 0.2064
+        },
+        {
+          "min_qty": 2400,
+          "unit_price": 0.1889
+        },
+        {
+          "min_qty": 4800,
+          "unit_price": 0.1784
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.3705
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.2975
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.2663
+        },
+        {
+          "min_qty": 1200,
+          "unit_price": 0.2044
+        },
+        {
+          "min_qty": 2400,
+          "unit_price": 0.1871
+        },
+        {
+          "min_qty": 4800,
+          "unit_price": 0.1767
+        }
+      ],
+      "product_image": "part-images/C5142239.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2208221800_XKB-Connection-X6511FRS-06-C85D30_C5142239.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2208221800_XKB-Connection-X6511FRS-06-C85D30_C5142239.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C5142239.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C5142239"
+    },
+    {
+      "comment": "4.7uH",
+      "designators": [
+        "L1"
+      ],
+      "designator_str": "L1",
+      "footprint": "L_1008_2520Metric",
+      "footprint_full": "Inductor_SMD:L_1008_2520Metric",
+      "quantity": 1,
+      "lcsc": "C91237",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "MLP2520S4R7MT0S1",
+      "brand": "TDK",
+      "description": "130m\u03a9 1A 4.7uH Multilayer inductor \u00b120% 1008 Inductors (SMD) ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 6265,
+      "lcsc_stock": 6265,
+      "stock": 6265,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.1002
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0807
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0709
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0637
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0578
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0549
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 5,
+          "unit_price": 0.1007
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0811
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0713
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.064
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0581
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0552
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.1002
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0807
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0709
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0637
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0578
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0549
+        }
+      ],
+      "product_image": "part-images/C91237.jpg",
+      "datasheet_url": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/1810241907_TDK-MLP2520S4R7MT0S1_C91237.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/C91237.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C91237.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C91237"
+    },
+    {
+      "comment": "WS2812B-2020-V6",
+      "designators": [
+        "LED1",
+        "LED2",
+        "LED3",
+        "LED4",
+        "LED5",
+        "LED6",
+        "LED7",
+        "LED8"
+      ],
+      "designator_str": "LED1,LED2,LED3,LED4,LED5,LED6,LED7,LED8",
+      "footprint": "LED-SMD_4P-L2.2-W2.0-P1.00_WS2815C-2020-4P",
+      "footprint_full": "WS2812B-v6-2020:LED-SMD_4P-L2.2-W2.0-P1.00_WS2815C-2020-4P",
+      "quantity": 8,
+      "lcsc": "C52917434",
+      "datasheet": "https://www.lcsc.com/datasheet/C52917434.pdf",
+      "layers": [
+        "B.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "WS2812B-2020-V6",
+      "brand": "Worldsemi",
+      "description": "-40\u2103~+85\u2103 0.84mm 120us 160mcd 1uA 200mcd 2kHz 2mm 2mm 3.3V~5.3V 300ns 465nm~470nm 515nm~520nm 520mcd 620nm~625nm 800Kbit/s Built-in power-on reset circuit\u3001Built-in power-on reset circuit\u3001Integrated intelligent reverse connection protection function SMD2020-4P RGB LEDs(Built-in IC) ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 768840,
+      "lcsc_stock": 733540,
+      "stock": 768840,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0915
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0735
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0644
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0568
+        },
+        {
+          "min_qty": 2500,
+          "unit_price": 0.0542
+        },
+        {
+          "min_qty": 4500,
+          "unit_price": 0.0524
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 5,
+          "unit_price": 0.0923
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0743
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.065
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0573
+        },
+        {
+          "min_qty": 2500,
+          "unit_price": 0.0547
+        },
+        {
+          "min_qty": 4500,
+          "unit_price": 0.0529
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0915
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0735
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0644
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0568
+        },
+        {
+          "min_qty": 2500,
+          "unit_price": 0.0542
+        },
+        {
+          "min_qty": 4500,
+          "unit_price": 0.0524
+        }
+      ],
+      "product_image": "part-images/C52917434.jpg",
+      "datasheet_url": "https://datasheet.lcsc.com/datasheet/pdf/a29e59ba4bc7e47e236b4d50b6c26345.pdf?productCode=C52917434",
+      "datasheet_viewer_url": "https://datasheet.lcsc.com/datasheet/pdf/a29e59ba4bc7e47e236b4d50b6c26345.pdf?productCode=C52917434",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C52917434.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C52917434"
+    },
+    {
+      "comment": "2N7002",
+      "designators": [
+        "Q1"
+      ],
+      "designator_str": "Q1",
+      "footprint": "SOT95P240X111-3N",
+      "footprint_full": "2N7002:SOT95P240X111-3N",
+      "quantity": 1,
+      "lcsc": "C8545",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "2N7002",
+      "brand": "Jiangsu Changjing Electronics Technology Co., Ltd.",
+      "description": "1 N-channel 115mA 2.5V 225mW 25pF 50pF 5pF 5\u03a9@10V 60V N-Channel \u00b120V SOT-23 MOSFETs ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 6064175,
+      "lcsc_stock": 5405700,
+      "stock": 6064175,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0156
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0119
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0103
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.009
+        },
+        {
+          "min_qty": 24000,
+          "unit_price": 0.0086
+        },
+        {
+          "min_qty": 51000,
+          "unit_price": 0.0082
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 50,
+          "unit_price": 0.0155
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0118
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0101
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0089
+        },
+        {
+          "min_qty": 24000,
+          "unit_price": 0.0084
+        },
+        {
+          "min_qty": 51000,
+          "unit_price": 0.0081
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0156
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0119
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0103
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.009
+        },
+        {
+          "min_qty": 24000,
+          "unit_price": 0.0086
+        },
+        {
+          "min_qty": 51000,
+          "unit_price": 0.0082
+        }
+      ],
+      "product_image": "part-images/C8545.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Jiangsu-Changjing-Electronics-Technology-Co---Ltd--2N7002_C8545.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Jiangsu-Changjing-Electronics-Technology-Co---Ltd--2N7002_C8545.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C8545.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C8545"
+    },
+    {
+      "comment": "220k",
+      "designators": [
+        "R1"
+      ],
+      "designator_str": "R1",
+      "footprint": "R_0603_1608Metric",
+      "footprint_full": "Resistor_SMD:R_0603_1608Metric",
+      "quantity": 1,
+      "lcsc": "C22961",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "0603WAF2203T5E",
+      "brand": "UNI-ROYAL(Uniroyal Elec)",
+      "description": "-55\u2103~+155\u2103 100mW 220k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 871036,
+      "lcsc_stock": 507900,
+      "stock": 871036,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0015
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0009
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0008
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0008
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.0015
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0009
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0008
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0015
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0009
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0008
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0008
+        }
+      ],
+      "product_image": "part-images/C22961.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF2203T5E_C22961.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010130_UNI-ROYAL-Uniroyal-Elec-0603WAF2203T5E_C22961.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C22961.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C22961"
+    },
+    {
+      "comment": "5.1k",
+      "designators": [
+        "R2",
+        "R5"
+      ],
+      "designator_str": "R2,R5",
+      "footprint": "R_0603_1608Metric",
+      "footprint_full": "Resistor_SMD:R_0603_1608Metric",
+      "quantity": 2,
+      "lcsc": "C23186",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "0603WAF5101T5E",
+      "brand": "UNI-ROYAL(Uniroyal Elec)",
+      "description": "-55\u2103~+155\u2103 100mW 5.1k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 18068357,
+      "lcsc_stock": 12621900,
+      "stock": 18068357,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0015
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0011
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0009
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0008
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0007
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0007
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.0015
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0011
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0009
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0008
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0007
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0015
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0011
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0009
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0008
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0007
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0007
+        }
+      ],
+      "product_image": "part-images/C23186.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF5101T5E_C23186.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF5101T5E_C23186.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C23186.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C23186"
+    },
+    {
+      "comment": "10k",
+      "designators": [
+        "R3",
+        "R7",
+        "R16"
+      ],
+      "designator_str": "R3,R7,R16",
+      "footprint": "R_0603_1608Metric",
+      "footprint_full": "Resistor_SMD:R_0603_1608Metric",
+      "quantity": 3,
+      "lcsc": "C25804",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "0603WAF1002T5E",
+      "brand": "UNI-ROYAL(Uniroyal Elec)",
+      "description": "-55\u2103~+155\u2103 100mW 10k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 42101963,
+      "lcsc_stock": 0,
+      "stock": 42101963,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0013
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0011
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.001
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0014
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0011
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.001
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0013
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0011
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.001
+        }
+      ],
+      "product_image": "part-images/C25804.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1002T5E_C25804.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C25804.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C25804"
+    },
+    {
+      "comment": "330k",
+      "designators": [
+        "R4"
+      ],
+      "designator_str": "R4",
+      "footprint": "R_0603_1608Metric",
+      "footprint_full": "Resistor_SMD:R_0603_1608Metric",
+      "quantity": 1,
+      "lcsc": "C23137",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "0603WAF3303T5E",
+      "brand": "UNI-ROYAL(Uniroyal Elec)",
+      "description": "-55\u2103~+155\u2103 100mW 330k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 742509,
+      "lcsc_stock": 406000,
+      "stock": 742509,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0013
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0011
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0009
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0009
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0013
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0011
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0009
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0013
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0011
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0009
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0009
+        }
+      ],
+      "product_image": "part-images/C23137.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF3303T5E_C23137.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF3303T5E_C23137.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C23137.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C23137"
+    },
+    {
+      "comment": "100k",
+      "designators": [
+        "R6",
+        "R8",
+        "R9"
+      ],
+      "designator_str": "R6,R8,R9",
+      "footprint": "R_0603_1608Metric",
+      "footprint_full": "Resistor_SMD:R_0603_1608Metric",
+      "quantity": 3,
+      "lcsc": "C25803",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "0603WAF1003T5E",
+      "brand": "UNI-ROYAL(Uniroyal Elec)",
+      "description": "-55\u2103~+155\u2103 100k\u03a9 100mW 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 12999181,
+      "lcsc_stock": 3436700,
+      "stock": 12999181,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0026
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.002
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0013
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0012
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.0027
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.002
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0014
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0012
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0026
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.002
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0013
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0012
+        }
+      ],
+      "product_image": "part-images/C25803.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF1003T5E_C25803.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C25803.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C25803"
+    },
+    {
+      "comment": "470k",
+      "designators": [
+        "R10"
+      ],
+      "designator_str": "R10",
+      "footprint": "R_0603_1608Metric",
+      "footprint_full": "Resistor_SMD:R_0603_1608Metric",
+      "quantity": 1,
+      "lcsc": "C23178",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "0603WAF4703T5E",
+      "brand": "UNI-ROYAL(Uniroyal Elec)",
+      "description": "-55\u2103~+155\u2103 100mW 470k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 948151,
+      "lcsc_stock": 304500,
+      "stock": 948151,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0023
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0018
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0015
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0013
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0011
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0011
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.0023
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0018
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0015
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0013
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0011
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0023
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0018
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0015
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0013
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0011
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0011
+        }
+      ],
+      "product_image": "part-images/C23178.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF4703T5E_C23178.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010116_UNI-ROYAL-Uniroyal-Elec-0603WAF4703T5E_C23178.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C23178.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C23178"
+    },
+    {
+      "comment": "1.5M",
+      "designators": [
+        "R11"
+      ],
+      "designator_str": "R11",
+      "footprint": "R_0603_1608Metric",
+      "footprint_full": "Resistor_SMD:R_0603_1608Metric",
+      "quantity": 1,
+      "lcsc": "C4172",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "0603WAF1504T5E",
+      "brand": "UNI-ROYAL(Uniroyal Elec)",
+      "description": "-55\u2103~+155\u2103 1.5M\u03a9 100mW 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 92860,
+      "lcsc_stock": 62400,
+      "stock": 92860,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0019
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0015
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0011
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.001
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.0019
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0015
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0013
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.001
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0019
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0015
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0011
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.001
+        }
+      ],
+      "product_image": "part-images/C4172.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010230_UNI-ROYAL-Uniroyal-Elec-0603WAF1504T5E_C4172.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010230_UNI-ROYAL-Uniroyal-Elec-0603WAF1504T5E_C4172.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C4172.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C4172"
+    },
+    {
+      "comment": "100",
+      "designators": [
+        "R12"
+      ],
+      "designator_str": "R12",
+      "footprint": "R_0603_1608Metric",
+      "footprint_full": "Resistor_SMD:R_0603_1608Metric",
+      "quantity": 1,
+      "lcsc": "C22775",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "0603WAF1000T5E",
+      "brand": "UNI-ROYAL(Uniroyal Elec)",
+      "description": "-55\u2103~+155\u2103 100mW 100\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 12822558,
+      "lcsc_stock": 3669200,
+      "stock": 12822558,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0014
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0009
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0009
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0014
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0009
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0014
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0009
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0009
+        }
+      ],
+      "product_image": "part-images/C22775.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2411221126_UNI-ROYAL-Uniroyal-Elec-0603WAF1000T5E_C22775.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2411221126_UNI-ROYAL-Uniroyal-Elec-0603WAF1000T5E_C22775.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C22775.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C22775"
+    },
+    {
+      "comment": "4.7k",
+      "designators": [
+        "R13",
+        "R14"
+      ],
+      "designator_str": "R13,R14",
+      "footprint": "R_0402_1005Metric",
+      "footprint_full": "Resistor_SMD:R_0402_1005Metric",
+      "quantity": 2,
+      "lcsc": "C25900",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "0402WGF4701TCE",
+      "brand": "UNI-ROYAL(Uniroyal Elec)",
+      "description": "-55\u2103~+155\u2103 4.7k\u03a9 50V 62.5mW Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0402 Chip Resistor - Surface Mount ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 12767715,
+      "lcsc_stock": 4457700,
+      "stock": 12767715,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0016
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0009
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0008
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0008
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.0016
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0009
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0008
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0016
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0012
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.001
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.0009
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0008
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0008
+        }
+      ],
+      "product_image": "part-images/C25900.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0402WGF4701TCE_C25900.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0402WGF4701TCE_C25900.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C25900.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C25900"
+    },
+    {
+      "comment": "8.2k",
+      "designators": [
+        "R15"
+      ],
+      "designator_str": "R15",
+      "footprint": "R_0603_1608Metric",
+      "footprint_full": "Resistor_SMD:R_0603_1608Metric",
+      "quantity": 1,
+      "lcsc": "C25981",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "0603WAF8201T5E",
+      "brand": "UNI-ROYAL(Uniroyal Elec)",
+      "description": "-55\u2103~+155\u2103 100mW 75V 8.2k\u03a9 Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 551552,
+      "lcsc_stock": 205800,
+      "stock": 551552,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0035
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0026
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0022
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.002
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0017
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 100,
+          "unit_price": 0.0035
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0027
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0022
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.002
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0017
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0035
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0026
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0022
+        },
+        {
+          "min_qty": 10000,
+          "unit_price": 0.002
+        },
+        {
+          "min_qty": 50000,
+          "unit_price": 0.0017
+        },
+        {
+          "min_qty": 50200,
+          "unit_price": 0.0017
+        }
+      ],
+      "product_image": "part-images/C25981.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF8201T5E_C25981.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2206010045_UNI-ROYAL-Uniroyal-Elec-0603WAF8201T5E_C25981.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C25981.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C25981"
+    },
+    {
+      "comment": "SKSCLBE010",
+      "designators": [
+        "SW1",
+        "SW2"
+      ],
+      "designator_str": "SW1,SW2",
+      "footprint": "KEY-SMD_4P-SKSCLXX010",
+      "footprint_full": "SKSCLBE010:KEY-SMD_4P-SKSCLXX010",
+      "quantity": 2,
+      "lcsc": "C115361",
+      "datasheet": "https://lcsc.com/product-detail/Tactile-Switches_ALPS_SKSCLBE010_3-3-5-1-1-Side-press-1-6N_C115361.html",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "SKSCLBE010",
+      "brand": "ALPSALPINE",
+      "description": "-30\u2103~+85\u2103 1.25mm 100,000 cycles 12V 2.24N 3.55mm 3.5mm 50mA Rectangular Button SMD(SMT) Tab SPST-NO Surface Mount, Right Angle SMD,3.6x3.5mm Tactile Switches ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 4174,
+      "lcsc_stock": 4170,
+      "stock": 4174,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.1352
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.1059
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0914
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0804
+        },
+        {
+          "min_qty": 2500,
+          "unit_price": 0.0716
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0671
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 5,
+          "unit_price": 0.1366
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.107
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0923
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0812
+        },
+        {
+          "min_qty": 2500,
+          "unit_price": 0.0723
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0678
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.1352
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.1059
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0914
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0804
+        },
+        {
+          "min_qty": 2500,
+          "unit_price": 0.0716
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0671
+        }
+      ],
+      "product_image": "part-images/C115361.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_1809192028_ALPSALPINE-SKSCLBE010_C115361.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_1809192028_ALPSALPINE-SKSCLBE010_C115361.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C115361.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C115361"
+    },
+    {
+      "comment": "K3-1296S-E1_C128955",
+      "designators": [
+        "SW3"
+      ],
+      "designator_str": "SW3",
+      "footprint": "SW-TH_K3-1296S-E1",
+      "footprint_full": "K3-1296S-E1:SW-TH_K3-1296S-E1",
+      "quantity": 1,
+      "lcsc": "C128955",
+      "datasheet": "https://lcsc.com/product-detail/Toggle-Switches_Korean-Hroparts-Elec-K3-1296S-E1_C128955.html",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "K3-1296S-E1",
+      "brand": "Korean Hroparts Elec",
+      "description": "-25\u2103~+80\u2103 1.4mm 10000 times 2.7mm 300mA 4V 6.6mm Black Rectangular Columnar SMD(SMT) Tab SPDT Surface Mount, Right Angle SMD,6.6x2.7mm Slide Switches ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 1528,
+      "lcsc_stock": 1525,
+      "stock": 1528,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0989
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0792
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0694
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0621
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0562
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0532
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 5,
+          "unit_price": 0.0999
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0801
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0701
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0627
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0567
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0538
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0989
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0792
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0694
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0621
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0562
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0532
+        }
+      ],
+      "product_image": "part-images/C128955.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2108131530_Korean-Hroparts-Elec-K3-1296S-E1_C128955.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2108131530_Korean-Hroparts-Elec-K3-1296S-E1_C128955.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C128955.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C128955"
+    },
+    {
+      "comment": "SI2301CDS-T1-GE3",
+      "designators": [
+        "T1"
+      ],
+      "designator_str": "T1",
+      "footprint": "SOT-23",
+      "footprint_full": "SI2301CDS-T1-GE3:SOT-23",
+      "quantity": 1,
+      "lcsc": "C10487",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "SI2301CDS-T1-GE3",
+      "brand": "Vishay Intertech",
+      "description": "-55\u2103~+150\u2103 1 P-Channel 1.6W 10nC@4.5V 142m\u03a9@2.5V 1V 20V 3.1A 405pF 55pF 75pF P-Channel SOT-23 MOSFETs ROHS",
+      "library_type": "Basic",
+      "jlc_stock": 259661,
+      "lcsc_stock": 169340,
+      "stock": 259661,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0843
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.0665
+        },
+        {
+          "min_qty": 300,
+          "unit_price": 0.0575
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.05
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0473
+        },
+        {
+          "min_qty": 9000,
+          "unit_price": 0.0455
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 10,
+          "unit_price": 0.0851
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.0672
+        },
+        {
+          "min_qty": 300,
+          "unit_price": 0.058
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0504
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0477
+        },
+        {
+          "min_qty": 9000,
+          "unit_price": 0.0459
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0843
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.0665
+        },
+        {
+          "min_qty": 300,
+          "unit_price": 0.0575
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.05
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0473
+        },
+        {
+          "min_qty": 9000,
+          "unit_price": 0.0455
+        }
+      ],
+      "product_image": "part-images/C10487.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_1808272021_Vishay-Intertech-SI2301CDS-T1-GE3_C10487.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_1808272021_Vishay-Intertech-SI2301CDS-T1-GE3_C10487.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C10487.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C10487"
+    },
+    {
+      "comment": "GT-USB-7010ASV",
+      "designators": [
+        "U1"
+      ],
+      "designator_str": "U1",
+      "footprint": "USB-C-SMD_G-SWITCH_GT-USB-7010ASV",
+      "footprint_full": "GT-USB-7010ASV:USB-C-SMD_G-SWITCH_GT-USB-7010ASV",
+      "quantity": 1,
+      "lcsc": "C2988369",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "GT-USB-7010ASV",
+      "brand": "G-Switch",
+      "description": "-40\u2103~+85\u2103 1 1.68mm 10,000 Cycles 16P 24V 3A 7.35mm Black Female Surface Mount, Right Angle Type-C USB 2.0 SMD USB Connectors ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 42407,
+      "lcsc_stock": 34935,
+      "stock": 42407,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0853
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0688
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0603
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0486
+        },
+        {
+          "min_qty": 2000,
+          "unit_price": 0.0462
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0446
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 5,
+          "unit_price": 0.0851
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0684
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0599
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0481
+        },
+        {
+          "min_qty": 2000,
+          "unit_price": 0.0457
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.044
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0853
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0688
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0603
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.0486
+        },
+        {
+          "min_qty": 2000,
+          "unit_price": 0.0462
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.0446
+        }
+      ],
+      "product_image": "part-images/C2988369.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2411221125_G-Switch-GT-USB-7010ASV_C2988369.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2411221125_G-Switch-GT-USB-7010ASV_C2988369.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C2988369.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C2988369"
+    },
+    {
+      "comment": "QMC6309",
+      "designators": [
+        "U2"
+      ],
+      "designator_str": "U2",
+      "footprint": "X1-WLB0808-4_L0.8-W0.8-P0.40-TL",
+      "footprint_full": "QMC6309:X1-WLB0808-4_L0.8-W0.8-P0.40-TL",
+      "quantity": 1,
+      "lcsc": "C5439871",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "QMC6309",
+      "brand": "QST",
+      "description": "-40\u2103~+85\u2103 16bit 2.5V~3.6V 6uA\u300110uA I2C \u00b13.2mT \u00b13.2mT WLCSP-4(0.8x0.8) 3D Magnetic Sensors ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 3481,
+      "lcsc_stock": 2500,
+      "stock": 3481,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.3641
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.2898
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.2581
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.2183
+        },
+        {
+          "min_qty": 2500,
+          "unit_price": 0.1918
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.1812
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 5,
+          "unit_price": 0.3675
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.2926
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.2605
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.2204
+        },
+        {
+          "min_qty": 2500,
+          "unit_price": 0.1936
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.1829
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.3641
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.2898
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.2581
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.2183
+        },
+        {
+          "min_qty": 2500,
+          "unit_price": 0.1918
+        },
+        {
+          "min_qty": 5000,
+          "unit_price": 0.1812
+        }
+      ],
+      "product_image": "part-images/C5439871.jpg",
+      "datasheet_url": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2405091102_QST-QMC6309_C5439871.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/C5439871.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C5439871.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C5439871"
+    },
+    {
+      "comment": "XB5350D0",
+      "designators": [
+        "U3"
+      ],
+      "designator_str": "U3",
+      "footprint": "SOT-23-5_L3.0-W1.7-P0.95-LS2.8-BR",
+      "footprint_full": "XB5350D0:SOT-23-5_L3.0-W1.7-P0.95-LS2.8-BR",
+      "quantity": 1,
+      "lcsc": "C2760002",
+      "datasheet": "https://www.lcsc.com/datasheet/C2760002.pdf",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "XB5350D0",
+      "brand": "XySemi",
+      "description": "-40\u2103~+85\u2103 1 1.5uA 2.8V~6V 2.9V 4.25V Protection IC Support SOT-23-5 Battery Management ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 0,
+      "lcsc_stock": 0,
+      "stock": 0,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.103
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0825
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0722
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0647
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0562
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0532
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 5,
+          "unit_price": 0.1035
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0829
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0727
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.065
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0565
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0535
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.103
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0825
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0722
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0647
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0562
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0532
+        }
+      ],
+      "product_image": "part-images/C2760002.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2106062205_XySemi-XB5350D0_C2760002.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2106062205_XySemi-XB5350D0_C2760002.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C2760002.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C2760002"
+    },
+    {
+      "comment": "RT9080-33GJ5_C20617299",
+      "designators": [
+        "U4"
+      ],
+      "designator_str": "U4",
+      "footprint": "SOT-23-5_L3.0-W1.5-P0.95-LS2.8-BL",
+      "footprint_full": "RT9080-33GJ5:SOT-23-5_L3.0-W1.5-P0.95-LS2.8-BL",
+      "quantity": 1,
+      "lcsc": "C20617299",
+      "datasheet": "https://www.lcsc.com/datasheet/C20617299.pdf",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "RT9080-33GJ5",
+      "brand": "TECH PUBLIC",
+      "description": "-40\u2103~+85\u2103@(Ta) 1 2uA 3.3V 320mV@(600mA) 5.5V 50uVrms 600mA 75dB@(1kHz) Fixed Over Temperature Protection\u3001Enable Positive SOT-23-5 Voltage Regulators - Linear, Low Drop Out (LDO) Regulators ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 34688,
+      "lcsc_stock": 33715,
+      "stock": 34688,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.1076
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0853
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0742
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0658
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0591
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0557
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 5,
+          "unit_price": 0.1085
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.086
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0748
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0664
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0596
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0563
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.1076
+        },
+        {
+          "min_qty": 50,
+          "unit_price": 0.0853
+        },
+        {
+          "min_qty": 150,
+          "unit_price": 0.0742
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.0658
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0591
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0557
+        }
+      ],
+      "product_image": "part-images/C20617299.jpg",
+      "datasheet_url": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2402021506_TECH-PUBLIC-RT9080-33GJ5_C20617299.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/C20617299.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C20617299.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C20617299"
+    },
+    {
+      "comment": "TP4054ST25P",
+      "designators": [
+        "U5"
+      ],
+      "designator_str": "U5",
+      "footprint": "SOT-23-5_L2.9-W1.6-P0.95-LS2.8-BL",
+      "footprint_full": "TP4054:SOT-23-5_L2.9-W1.6-P0.95-LS2.8-BL",
+      "quantity": 1,
+      "lcsc": "C382138",
+      "datasheet": "https://lcsc.com/product-detail/PMIC-Battery-Management_TPOWER-TP4054ST25P_C382138.html",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "TP4054",
+      "brand": "TPOWER",
+      "description": "-40\u2103~+85\u2103 1 2.9V 3uA 4.2V 4V~6V 600mA Charging IC Lithium Battery SOT-23-5 Battery Management ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 5739,
+      "lcsc_stock": 5730,
+      "stock": 5739,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0572
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.0446
+        },
+        {
+          "min_qty": 300,
+          "unit_price": 0.0383
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0382
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0344
+        },
+        {
+          "min_qty": 9000,
+          "unit_price": 0.0324
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 10,
+          "unit_price": 0.0578
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.0451
+        },
+        {
+          "min_qty": 300,
+          "unit_price": 0.0388
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0385
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0347
+        },
+        {
+          "min_qty": 9000,
+          "unit_price": 0.0328
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0572
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.0446
+        },
+        {
+          "min_qty": 300,
+          "unit_price": 0.0383
+        },
+        {
+          "min_qty": 3000,
+          "unit_price": 0.0382
+        },
+        {
+          "min_qty": 6000,
+          "unit_price": 0.0344
+        },
+        {
+          "min_qty": 9000,
+          "unit_price": 0.0324
+        }
+      ],
+      "product_image": "part-images/C382138.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_1912111437_TPOWER-TP4054_C382138.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_1912111437_TPOWER-TP4054_C382138.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C382138.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C382138"
+    },
+    {
+      "comment": "~",
+      "designators": [
+        "U6"
+      ],
+      "designator_str": "U6",
+      "footprint": "JST_GH_SM02B-GHS-TB_1x02-1MP_P1.25mm_Horizontal",
+      "footprint_full": "Connector_JST:JST_GH_SM02B-GHS-TB_1x02-1MP_P1.25mm_Horizontal",
+      "quantity": 1,
+      "lcsc": "C7433483",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "HCZZ0014-2",
+      "brand": "Hong Cheng",
+      "description": "-25\u2103~+85\u2103 1 1.25mm 125V 1A 1x2P 2 2P 4.25mm 4.85mm 5.8mm Beige Copper GH LCP Surface Mount, Right Angle Tin SMD,P=1.25mm,\u5367\u8d34 Wire To Board Connector ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 2028,
+      "lcsc_stock": 2020,
+      "stock": 2028,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0378
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.031
+        },
+        {
+          "min_qty": 300,
+          "unit_price": 0.0277
+        },
+        {
+          "min_qty": 1500,
+          "unit_price": 0.0251
+        },
+        {
+          "min_qty": 4500,
+          "unit_price": 0.0231
+        },
+        {
+          "min_qty": 10500,
+          "unit_price": 0.0221
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 10,
+          "unit_price": 0.0378
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.0311
+        },
+        {
+          "min_qty": 300,
+          "unit_price": 0.0277
+        },
+        {
+          "min_qty": 1500,
+          "unit_price": 0.0252
+        },
+        {
+          "min_qty": 4500,
+          "unit_price": 0.0232
+        },
+        {
+          "min_qty": 10500,
+          "unit_price": 0.0221
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.0378
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.031
+        },
+        {
+          "min_qty": 300,
+          "unit_price": 0.0277
+        },
+        {
+          "min_qty": 1500,
+          "unit_price": 0.0251
+        },
+        {
+          "min_qty": 4500,
+          "unit_price": 0.0231
+        },
+        {
+          "min_qty": 10500,
+          "unit_price": 0.0221
+        }
+      ],
+      "product_image": "part-images/C7433483.jpg",
+      "datasheet_url": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2306261511_Hong-Cheng-HCZZ0014-2_C7433483.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/C7433483.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C7433483.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C7433483"
+    },
+    {
+      "comment": "MCP1640T-I_CHY",
+      "designators": [
+        "U12"
+      ],
+      "designator_str": "U12",
+      "footprint": "SOT95P270X145-6N",
+      "footprint_full": "MCP1640T-I_CHY:SOT95P270X145-6N",
+      "quantity": 1,
+      "lcsc": "C478087",
+      "datasheet": "https://ww1.microchip.com/downloads/en/DeviceDoc/20002234D.pdf",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "MCP1640BT-I/CHY",
+      "brand": "Microchip Tech",
+      "description": "-40\u2103~+125\u2103@(TJ) 1 19uA 2V~5.5V 350mA 500kHz 800mV~5.5V Adjustable Boost Boost Built-in Yes SOT-23-6 DC-DC Converters ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 5333,
+      "lcsc_stock": 5333,
+      "stock": 5333,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.8804
+        },
+        {
+          "min_qty": 10,
+          "unit_price": 0.702
+        },
+        {
+          "min_qty": 30,
+          "unit_price": 0.612
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.5237
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.4713
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.4435
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.8885
+        },
+        {
+          "min_qty": 10,
+          "unit_price": 0.7085
+        },
+        {
+          "min_qty": 30,
+          "unit_price": 0.6177
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.5285
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.4757
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.4476
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 0.8804
+        },
+        {
+          "min_qty": 10,
+          "unit_price": 0.702
+        },
+        {
+          "min_qty": 30,
+          "unit_price": 0.612
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 0.5237
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 0.4713
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 0.4435
+        }
+      ],
+      "product_image": "part-images/C478087.jpg",
+      "datasheet_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2409301034_Microchip-Tech-MCP1640BT-I-CHY_C478087.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/lcsc_datasheet_2409301034_Microchip-Tech-MCP1640BT-I-CHY_C478087.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C478087.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C478087"
+    },
+    {
+      "comment": "~",
+      "designators": [
+        "U14"
+      ],
+      "designator_str": "U14",
+      "footprint": "LGA-14_L3.0-W2.5-P0.50-TL",
+      "footprint_full": "ProLib_pcs_2026-01-29:LGA-14_L3.0-W2.5-P0.50-TL",
+      "quantity": 1,
+      "lcsc": "C3021082",
+      "datasheet": "https://item.szlcsc.com/datasheet/QMI8658A/3544058.html",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "QMI8658A",
+      "brand": "QST",
+      "description": "-40\u2103~+85\u2103 1.5KB 1.71V~3.6V 16bit IMU (accelerometer + gyroscope) SPI\u3001I2C\u3001I3C X,Y,Z X,Y,Z \u00b116g \u00b12048dps \u8fd0\u52a8\u4e8b\u4ef6\u68c0\u6d4b\u3001\u540c\u6b65\u4e0e\u65f6\u95f4\u6233 LGA-14 Accelerometers ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 9056,
+      "lcsc_stock": 7682,
+      "stock": 9056,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 1.9849
+        },
+        {
+          "min_qty": 10,
+          "unit_price": 1.7624
+        },
+        {
+          "min_qty": 30,
+          "unit_price": 1.5513
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 1.3942
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 1.0342
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 1.0031
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 2.0036
+        },
+        {
+          "min_qty": 10,
+          "unit_price": 1.779
+        },
+        {
+          "min_qty": 30,
+          "unit_price": 1.5659
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 1.4073
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 1.044
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 1.0126
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 1.9849
+        },
+        {
+          "min_qty": 10,
+          "unit_price": 1.7624
+        },
+        {
+          "min_qty": 30,
+          "unit_price": 1.5513
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 1.3942
+        },
+        {
+          "min_qty": 500,
+          "unit_price": 1.0342
+        },
+        {
+          "min_qty": 1000,
+          "unit_price": 1.0031
+        }
+      ],
+      "product_image": "part-images/C3021082.jpg",
+      "datasheet_url": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2308041117_QST-QMI8658A_C3021082.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/C3021082.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C3021082.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C3021082"
+    },
+    {
+      "comment": "ESP32-C3-WROOM-02-N4(4MB)",
+      "designators": [
+        "U16"
+      ],
+      "designator_str": "U16",
+      "footprint": "BULETM-SMD_ESPRESSIF_ESP32-C3-WROOM-02-N4-4MB",
+      "footprint_full": "ESP32-C3-WROOM-02-N4:BULETM-SMD_ESPRESSIF_ESP32-C3-WROOM-02-N4-4MB",
+      "quantity": 1,
+      "lcsc": "C2934560",
+      "datasheet": "",
+      "layers": [
+        "F.Cu"
+      ],
+      "found": true,
+      "stale": false,
+      "mfr": "ESP32-C3-WROOM-02-N4",
+      "brand": "Espressif Systems",
+      "description": "-105dBm -40\u2103~+85\u2103 2.4GHz 20.5dBm 345mA 3V~3.6V 82mA Bluetooth5.0 ESP32-C3 Chip Integrated Bluetooth function\u3001Support USB interface On-board PCB Antenna UART\u3001SPI\u3001I2C\u3001I2S\u3001JTAG\u3001USB SMD,20x18mm WiFi Modules ROHS",
+      "library_type": "Extended",
+      "jlc_stock": 8924,
+      "lcsc_stock": 8924,
+      "stock": 8924,
+      "jlc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 3.0534
+        },
+        {
+          "min_qty": 10,
+          "unit_price": 2.6623
+        },
+        {
+          "min_qty": 30,
+          "unit_price": 2.4627
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 2.196
+        },
+        {
+          "min_qty": 650,
+          "unit_price": 2.1011
+        },
+        {
+          "min_qty": 1300,
+          "unit_price": 2.0602
+        }
+      ],
+      "lcsc_price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 3.006
+        },
+        {
+          "min_qty": 10,
+          "unit_price": 2.6113
+        },
+        {
+          "min_qty": 30,
+          "unit_price": 2.4114
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 2.1422
+        },
+        {
+          "min_qty": 650,
+          "unit_price": 2.0448
+        },
+        {
+          "min_qty": 1300,
+          "unit_price": 2.0035
+        }
+      ],
+      "price_tiers": [
+        {
+          "min_qty": 1,
+          "unit_price": 3.0534
+        },
+        {
+          "min_qty": 10,
+          "unit_price": 2.6623
+        },
+        {
+          "min_qty": 30,
+          "unit_price": 2.4627
+        },
+        {
+          "min_qty": 100,
+          "unit_price": 2.196
+        },
+        {
+          "min_qty": 650,
+          "unit_price": 2.1011
+        },
+        {
+          "min_qty": 1300,
+          "unit_price": 2.0602
+        }
+      ],
+      "product_image": "part-images/C2934560.jpg",
+      "datasheet_url": "https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2306201508_Espressif-Systems-ESP32-C3-WROOM-02-N4_C2934560.pdf",
+      "datasheet_viewer_url": "https://www.lcsc.com/datasheet/C2934560.pdf",
+      "lcsc_url": "https://www.lcsc.com/product-detail/C2934560.html",
+      "jlc_url": "https://jlcpcb.com/partdetail/C2934560"
+    }
+  ]
+}

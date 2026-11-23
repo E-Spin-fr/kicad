@@ -1,0 +1,81 @@
+{
+  "version": "main",
+  "version_id": "main",
+  "commit_sha": "2c66e79",
+  "copied_3d": [
+    [
+      "top",
+      "renders/pcb-3d-top.png"
+    ],
+    [
+      "bottom",
+      "renders/pcb-3d-bottom.png"
+    ],
+    [
+      "iso-top",
+      "renders/pcb-3d-iso-top.png"
+    ],
+    [
+      "iso-bottom",
+      "renders/pcb-3d-iso-bottom.png"
+    ]
+  ],
+  "copied_2d": [
+    [
+      "2D Top View",
+      "renders/pcb-2d-top.svg"
+    ],
+    [
+      "2D Bottom View",
+      "renders/pcb-2d-bottom.svg"
+    ]
+  ],
+  "copied_sch_svgs": [
+    [
+      "handspinner_pcb",
+      "renders/sch-handspinner_pcb.svg"
+    ]
+  ],
+  "dl_entries": [
+    [
+      "JLCPCB Full PCBA Bundle (ZIP)",
+      "files/e-spin-main-jlcpcb-production.zip",
+      "183 KB"
+    ],
+    [
+      "JLCPCB Gerbers + Drills (ZIP)",
+      "files/e-spin-main-jlcpcb-gerbers.zip",
+      "183 KB"
+    ],
+    [
+      "JLCPCB BOM (CSV)",
+      "files/e-spin-main-jlcpcb-bom.csv",
+      "1 KB"
+    ],
+    [
+      "JLCPCB Pick & Place CPL (CSV)",
+      "files/e-spin-main-jlcpcb-cpl.csv",
+      "2 KB"
+    ],
+    [
+      "Priced BOM Snapshot (CSV)",
+      "files/e-spin-main-bom-priced.csv",
+      "7 KB"
+    ],
+    [
+      "Schematic PDF",
+      "files/e-spin-main-schematic.pdf",
+      "213 KB"
+    ],
+    [
+      "3D Mechanical Model (STEP)",
+      "files/e-spin-main-3d.step",
+      "13,829 KB"
+    ],
+    [
+      "PCB Renders Pack (ZIP)",
+      "files/e-spin-main-renders.zip",
+      "754 KB"
+    ]
+  ]
+}
