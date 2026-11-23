@@ -89,7 +89,8 @@ def _build_inline_datasheet_url(raw_url: str, lcsc_code: str) -> str:
 
 
 def fetch_part_data(lcsc_code: str, offline: bool = False) -> Dict[str, Any]:
-    """Fetch JLCPCB SMT + LCSC tiered pricing, images, and datasheet metadata for an LCSC code."""
+    """Fetch live JLCPCB SMT data (cart.jlcpcb.com) + LCSC warehouse data (wmsc.lcsc.com)
+    for a single LCSC part code, keeping JLC and LCSC stocks & price tiers distinct."""
     code = lcsc_code.strip().upper()
     result: Dict[str, Any] = {
         "lcsc": code,
@@ -102,6 +103,8 @@ def fetch_part_data(lcsc_code: str, offline: bool = False) -> Dict[str, Any]:
         "jlc_stock": None,
         "lcsc_stock": None,
         "stock": None,
+        "jlc_price_tiers": [],
+        "lcsc_price_tiers": [],
         "price_tiers": [],
         "product_image": "",
         "datasheet_url": "",
@@ -114,43 +117,105 @@ def fetch_part_data(lcsc_code: str, offline: bool = False) -> Dict[str, Any]:
 
     num_code = code[1:] if code.startswith("C") else code
 
-    # 1) Query jlcsearch (JLCPCB SMT catalog mirror: Basic/Extended + JLC SMT stock)
-    jlc_url = (
-        "https://jlcsearch.tscircuit.com/components/list.json?"
-        + urllib.parse.urlencode({"search": code, "full": "true", "limit": "10"})
+    # 1) Query JLCPCB official SMT component detail API (real-time JLC SMT stock, Basic/Preferred/Extended, JLC prices)
+    jlc_detail_url = (
+        "https://cart.jlcpcb.com/shoppingCart/smtGood/getComponentDetail?"
+        + urllib.parse.urlencode({"componentCode": code})
     )
-    jlc_json = _http_get_json(jlc_url, timeout=10.0)
-    if isinstance(jlc_json, dict):
-        comps = jlc_json.get("components") or []
-        matched = None
-        for c in comps:
-            c_lcsc = str(c.get("lcsc", "")).strip().upper()
-            if c_lcsc == code or c_lcsc == num_code:
-                matched = c
-                break
-        if matched:
-            result["found"] = True
-            result["source"].append("jlcsearch")
-            result["mfr"] = str(matched.get("mfr") or "")
-            result["description"] = str(matched.get("description") or "")
-            if matched.get("stock") is not None:
+    jlc_detail = _http_get_json(jlc_detail_url, timeout=10.0)
+    jdata = (jlc_detail or {}).get("data") if isinstance(jlc_detail, dict) else None
+    if isinstance(jdata, dict) and jdata.get("componentCode"):
+        result["found"] = True
+        result["source"].append("jlcpcb")
+        result["mfr"] = str(jdata.get("componentModelEn") or "")
+        result["brand"] = str(jdata.get("componentBrandEn") or "")
+        result["description"] = str(jdata.get("describe") or "")
+
+        # Real-time JLCPCB SMT stock
+        raw_jlc_stock = jdata.get("stockCount")
+        if raw_jlc_stock is None:
+            raw_jlc_stock = jdata.get("overseasStockCount")
+        if raw_jlc_stock is not None:
+            try:
+                result["jlc_stock"] = int(raw_jlc_stock)
+            except (TypeError, ValueError):
+                pass
+
+        # Library classification: base (Basic), preferred, expand (Extended)
+        lib_raw = str(jdata.get("componentLibraryType") or "").strip().lower()
+        is_pref = bool(jdata.get("preferredComponentFlag"))
+        if lib_raw == "base":
+            result["library_type"] = "Basic"
+        elif is_pref:
+            result["library_type"] = "Preferred"
+        elif lib_raw:
+            result["library_type"] = "Extended"
+
+        # JLCPCB SMT tiered pricing
+        jlc_tiers: List[Dict[str, Any]] = []
+        for row in jdata.get("prices") or jdata.get("jlcPrices") or []:
+            if not isinstance(row, dict):
+                continue
+            start_q = row.get("startNumber")
+            pr = row.get("productPrice")
+            if start_q is not None and pr is not None:
                 try:
-                    result["jlc_stock"] = int(matched["stock"])
+                    jlc_tiers.append({"min_qty": int(start_q), "unit_price": float(pr)})
                 except (TypeError, ValueError):
                     pass
-            is_basic = bool(matched.get("is_basic") or matched.get("basic"))
-            is_pref = bool(matched.get("is_preferred") or matched.get("preferred"))
-            if is_basic:
-                result["library_type"] = "Basic"
-            elif is_pref:
-                result["library_type"] = "Preferred"
-            else:
-                result["library_type"] = "Extended"
-            jlc_tiers = _parse_jlcsearch_tiers(matched)
-            if jlc_tiers:
-                result["price_tiers"] = jlc_tiers
+        if not jlc_tiers and jdata.get("initialPrice") is not None:
+            try:
+                jlc_tiers.append({"min_qty": 1, "unit_price": float(jdata["initialPrice"])})
+            except (TypeError, ValueError):
+                pass
+        if jlc_tiers:
+            jlc_tiers.sort(key=lambda t: t["min_qty"])
+            result["jlc_price_tiers"] = jlc_tiers
 
-    # 2) Query LCSC product detail API for volume price breaks, warehouse stock, images & PDF
+        # Official LCSC inline datasheet viewer URL from JLCPCB
+        manual_url = str(jdata.get("dataManualUrl") or "").strip()
+        if manual_url:
+            result["datasheet_url"] = manual_url
+            result["datasheet_viewer_url"] = _build_inline_datasheet_url(manual_url, code)
+
+    # 2) Fallback to jlcsearch only if JLCPCB detail API didn't return a match
+    if "jlcpcb" not in result["source"]:
+        jlc_url = (
+            "https://jlcsearch.tscircuit.com/components/list.json?"
+            + urllib.parse.urlencode({"search": code, "full": "true", "limit": "10"})
+        )
+        jlc_json = _http_get_json(jlc_url, timeout=10.0)
+        if isinstance(jlc_json, dict):
+            comps = jlc_json.get("components") or []
+            matched = None
+            for c in comps:
+                c_lcsc = str(c.get("lcsc", "")).strip().upper()
+                if c_lcsc == code or c_lcsc == num_code:
+                    matched = c
+                    break
+            if matched:
+                result["found"] = True
+                result["source"].append("jlcsearch")
+                result["mfr"] = str(matched.get("mfr") or "")
+                result["description"] = str(matched.get("description") or "")
+                if matched.get("stock") is not None:
+                    try:
+                        result["jlc_stock"] = int(matched["stock"])
+                    except (TypeError, ValueError):
+                        pass
+                is_basic = bool(matched.get("is_basic") or matched.get("basic"))
+                is_pref = bool(matched.get("is_preferred") or matched.get("preferred"))
+                if is_basic:
+                    result["library_type"] = "Basic"
+                elif is_pref:
+                    result["library_type"] = "Preferred"
+                else:
+                    result["library_type"] = "Extended"
+                jlc_tiers = _parse_jlcsearch_tiers(matched)
+                if jlc_tiers:
+                    result["jlc_price_tiers"] = jlc_tiers
+
+    # 3) Query LCSC product detail API for LCSC warehouse stock, LCSC price breaks & product images
     lcsc_api = (
         "https://wmsc.lcsc.com/ftps/wm/product/detail?"
         + urllib.parse.urlencode({"productCode": code})
@@ -162,7 +227,8 @@ def fetch_part_data(lcsc_code: str, offline: bool = False) -> Dict[str, Any]:
         result["source"].append("lcsc")
         if not result["mfr"]:
             result["mfr"] = str(prod.get("productModel") or "")
-        result["brand"] = str(prod.get("brandNameEn") or "")
+        if not result["brand"]:
+            result["brand"] = str(prod.get("brandNameEn") or "")
         if not result["description"]:
             result["description"] = str(
                 prod.get("productIntroEn") or prod.get("productDescEn") or ""
@@ -182,7 +248,7 @@ def fetch_part_data(lcsc_code: str, offline: bool = False) -> Dict[str, Any]:
                     result["product_image"] = val
                     break
 
-        if prod.get("pdfUrl"):
+        if not result["datasheet_url"] and prod.get("pdfUrl"):
             result["datasheet_url"] = str(prod["pdfUrl"])
             result["datasheet_viewer_url"] = _build_inline_datasheet_url(
                 result["datasheet_url"], code
@@ -194,7 +260,7 @@ def fetch_part_data(lcsc_code: str, offline: bool = False) -> Dict[str, Any]:
             except (TypeError, ValueError):
                 pass
 
-        tiers: List[Dict[str, Any]] = []
+        lcsc_tiers: List[Dict[str, Any]] = []
         for row in prod.get("productPriceList") or []:
             if not isinstance(row, dict):
                 continue
@@ -202,17 +268,16 @@ def fetch_part_data(lcsc_code: str, offline: bool = False) -> Dict[str, Any]:
             usd = row.get("usdPrice") or row.get("productPrice")
             if ladder is not None and usd is not None:
                 try:
-                    tiers.append({"min_qty": int(ladder), "unit_price": float(usd)})
+                    lcsc_tiers.append({"min_qty": int(ladder), "unit_price": float(usd)})
                 except (TypeError, ValueError):
                     pass
-        if tiers:
-            tiers.sort(key=lambda t: t["min_qty"])
-            result["price_tiers"] = tiers
+        if lcsc_tiers:
+            lcsc_tiers.sort(key=lambda t: t["min_qty"])
+            result["lcsc_price_tiers"] = lcsc_tiers
 
-    if result["jlc_stock"] is not None:
-        result["stock"] = result["jlc_stock"]
-    elif result["lcsc_stock"] is not None:
-        result["stock"] = result["lcsc_stock"]
+    # Default price_tiers & stock prefer JLCPCB SMT (matches default selector)
+    result["price_tiers"] = result["jlc_price_tiers"] or result["lcsc_price_tiers"]
+    result["stock"] = result["jlc_stock"]
 
     return result
 
@@ -662,29 +727,16 @@ def render_bom_fragment(payload: Dict[str, Any]) -> str:
     return BOM_DATA.items.map((it, idx) => {{
       const rowId = `${{it.designator_str}}__${{idx}}`;
       const totalQty = it.quantity * boardCount;
-      const tierIdx = getActiveTierIndex(it.price_tiers, totalQty);
-      const unitPrice = tierIdx >= 0 ? it.price_tiers[tierIdx].unit_price : null;
+      const activeTiers = partSource === "jlc"
+        ? ((it.jlc_price_tiers && it.jlc_price_tiers.length) ? it.jlc_price_tiers : (it.price_tiers || []))
+        : ((it.lcsc_price_tiers && it.lcsc_price_tiers.length) ? it.lcsc_price_tiers : (it.price_tiers || []));
+      const tierIdx = getActiveTierIndex(activeTiers, totalQty);
+      const unitPrice = tierIdx >= 0 ? activeTiers[tierIdx].unit_price : null;
       const lineTotal = unitPrice !== null ? unitPrice * totalQty : null;
       const hasLcsc = Boolean(it.lcsc);
 
-      // Select stock according to chosen supplier source
-      let activeStock = null;
-      let stockFallback = false;
-      if (partSource === "jlc") {{
-        if (it.jlc_stock !== null && it.jlc_stock !== undefined) {{
-          activeStock = it.jlc_stock;
-        }} else if (it.lcsc_stock !== null && it.lcsc_stock !== undefined) {{
-          activeStock = it.lcsc_stock;
-          stockFallback = true;
-        }}
-      }} else {{
-        if (it.lcsc_stock !== null && it.lcsc_stock !== undefined) {{
-          activeStock = it.lcsc_stock;
-        }} else if (it.jlc_stock !== null && it.jlc_stock !== undefined) {{
-          activeStock = it.jlc_stock;
-          stockFallback = true;
-        }}
-      }}
+      // Strictly use the selected supplier's stock (no silent cross-supplier fallback)
+      const activeStock = partSource === "jlc" ? it.jlc_stock : it.lcsc_stock;
 
       let status = "ok";
       if (!hasLcsc) status = "missing";
@@ -697,11 +749,11 @@ def render_bom_fragment(payload: Dict[str, Any]) -> str:
         ...it,
         _rowId: rowId,
         total_qty: totalQty,
+        active_tiers: activeTiers,
         tier_idx: tierIdx,
         unit_price: unitPrice,
         line_total: lineTotal,
         active_stock: activeStock,
-        stock_fallback: stockFallback,
         status,
       }};
     }});
@@ -803,13 +855,12 @@ def render_bom_fragment(payload: Dict[str, Any]) -> str:
       }}
 
       let stockBadge = "";
-      const estTag = r.stock_fallback ? (isJlc ? " (LCSC)" : " (JLC)") : "";
       if (r.status === "missing") stockBadge = '<span class="bom-badge b-warn"><span class="bom-dot"></span>No LCSC</span>';
-      else if (r.status === "unknown") stockBadge = '<span class="bom-badge b-neutral">Unknown</span>';
+      else if (r.status === "unknown") stockBadge = `<span class="bom-badge b-neutral">N/A (${{isJlc ? "JLC" : "LCSC"}})</span>`;
       else if (r.status === "out") stockBadge = '<span class="bom-badge b-bad"><span class="bom-dot"></span>Out of stock</span>';
       else if (r.status === "short") stockBadge = `<span class="bom-badge b-bad"><span class="bom-dot"></span>${{r.active_stock.toLocaleString()}} / ${{r.total_qty}}</span>`;
-      else if (r.status === "low") stockBadge = `<span class="bom-badge b-warn"><span class="bom-dot"></span>${{r.active_stock.toLocaleString()}}${{estTag}}</span>`;
-      else stockBadge = `<span class="bom-badge b-ok"><span class="bom-dot"></span>${{r.active_stock.toLocaleString()}}${{estTag}}</span>`;
+      else if (r.status === "low") stockBadge = `<span class="bom-badge b-warn"><span class="bom-dot"></span>${{r.active_stock.toLocaleString()}}</span>`;
+      else stockBadge = `<span class="bom-badge b-ok"><span class="bom-dot"></span>${{r.active_stock.toLocaleString()}}</span>`;
 
       const lcscLink = r.lcsc
         ? `<a class="bom-mono" href="${{escHtml(partUrl)}}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${{escHtml(r.lcsc)}}</a>`
@@ -859,10 +910,10 @@ def render_bom_fragment(payload: Dict[str, Any]) -> str:
         const jlcStockStr = (r.jlc_stock !== null && r.jlc_stock !== undefined) ? r.jlc_stock.toLocaleString() : "N/A";
         const lcscStockStr = (r.lcsc_stock !== null && r.lcsc_stock !== undefined) ? r.lcsc_stock.toLocaleString() : "N/A";
 
-        let tiersHtml = '<div class="bom-tiers-box"><div class="bom-tiers-head">Volume Price Breaks</div>';
-        if (r.price_tiers && r.price_tiers.length) {{
+        let tiersHtml = `<div class="bom-tiers-box"><div class="bom-tiers-head">${{isJlc ? "JLCPCB SMT" : "LCSC"}} Price Breaks</div>`;
+        if (r.active_tiers && r.active_tiers.length) {{
           tiersHtml += '<table class="bom-tiers-tbl"><tbody>';
-          r.price_tiers.forEach((t, ti) => {{
+          r.active_tiers.forEach((t, ti) => {{
             tiersHtml += `<tr class="${{ti === r.tier_idx ? "active-tier" : ""}}"><td>${{t.min_qty.toLocaleString()}}+</td><td class="bom-num">${{fmtUnit(t.unit_price)}}</td></tr>`;
           }});
           tiersHtml += '</tbody></table>';
@@ -1081,6 +1132,8 @@ def main() -> int:
                 "jlc_stock": info.get("jlc_stock"),
                 "lcsc_stock": info.get("lcsc_stock"),
                 "stock": info.get("stock"),
+                "jlc_price_tiers": info.get("jlc_price_tiers", []),
+                "lcsc_price_tiers": info.get("lcsc_price_tiers", []),
                 "price_tiers": info.get("price_tiers", []),
                 "product_image": info.get("product_image", ""),
                 "datasheet_url": raw_ds,
