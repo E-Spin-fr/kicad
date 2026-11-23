@@ -46,6 +46,7 @@ docs: jlcpcb bom-price
 		--out-dir $(OUT_DIR)/docs \
 		--version $(VERSION) \
 		--jlcpcb-dir $(OUT_DIR)/jlcpcb \
+		--bom-json $(OUT_DIR)/bom/bom-priced.json \
 		--bom-html $(OUT_DIR)/bom/bom.html \
 		--bom-csv $(OUT_DIR)/bom/e-spin-$(VERSION)-bom-priced.csv \
 		$(if $(wildcard $(OUT_DIR)/ibom/ibom.html),--ibom $(OUT_DIR)/ibom/ibom.html,) \

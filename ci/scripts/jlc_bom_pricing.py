@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Fetch live JLCPCB / LCSC pricing & availability and generate:
+"""Fetch live JLCPCB / LCSC pricing, availability, product images & datasheet links, and generate:
 - bom-priced.json  (structured data + price tiers + summary at 1/5/10/50/100 boards)
 - <prefix>-bom-priced.csv
-- bom.html         (interactive BOM cost & stock explorer with board-count slider)
+- bom.html         (standalone interactive BOM cost & availability page)
+
+Also exposes `render_bom_fragment(payload)` for native integration inside `build_docs.py`.
 """
 
 from __future__ import annotations
@@ -10,13 +12,12 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from config_loader import load_config
 
@@ -70,8 +71,25 @@ def _parse_jlcsearch_tiers(comp: Dict[str, Any]) -> List[Dict[str, Any]]:
     return tiers
 
 
+def _build_inline_datasheet_url(raw_url: str, lcsc_code: str) -> str:
+    """Return a URL that opens the datasheet inline in a new browser tab without forcing a download.
+
+    LCSC's direct CDN (`wmsc.lcsc.com`) often triggers a binary file download, whereas
+    `https://www.lcsc.com/datasheet/<CODE>.pdf` opens LCSC's inline browser PDF viewer.
+    """
+    url = (raw_url or "").strip()
+    code = (lcsc_code or "").strip().upper()
+    if not url:
+        return f"https://www.lcsc.com/datasheet/{code}.pdf" if code else ""
+    if "wmsc.lcsc.com" in url and code:
+        return f"https://www.lcsc.com/datasheet/{code}.pdf"
+    if "lcsc.com/product-detail/" in url and code:
+        return f"https://www.lcsc.com/datasheet/{code}.pdf"
+    return url
+
+
 def fetch_part_data(lcsc_code: str, offline: bool = False) -> Dict[str, Any]:
-    """Fetch JLCPCB SMT + LCSC tiered pricing data for a single LCSC part code."""
+    """Fetch JLCPCB SMT + LCSC tiered pricing, images, and datasheet metadata for an LCSC code."""
     code = lcsc_code.strip().upper()
     result: Dict[str, Any] = {
         "lcsc": code,
@@ -85,16 +103,18 @@ def fetch_part_data(lcsc_code: str, offline: bool = False) -> Dict[str, Any]:
         "lcsc_stock": None,
         "stock": None,
         "price_tiers": [],
+        "product_image": "",
         "datasheet_url": "",
-        "lcsc_url": f"https://www.lcsc.com/product-detail/{code}.html",
-        "jlc_url": f"https://jlcpcb.com/partdetail/{code}",
+        "datasheet_viewer_url": f"https://www.lcsc.com/datasheet/{code}.pdf" if code else "",
+        "lcsc_url": f"https://www.lcsc.com/product-detail/{code}.html" if code else "",
+        "jlc_url": f"https://jlcpcb.com/partdetail/{code}" if code else "",
     }
     if offline or not code:
         return result
 
     num_code = code[1:] if code.startswith("C") else code
 
-    # 1) Query jlcsearch (fast JLCPCB SMT catalog mirror: Basic/Extended + JLC SMT stock)
+    # 1) Query jlcsearch (JLCPCB SMT catalog mirror: Basic/Extended + JLC SMT stock)
     jlc_url = (
         "https://jlcsearch.tscircuit.com/components/list.json?"
         + urllib.parse.urlencode({"search": code, "full": "true", "limit": "10"})
@@ -130,7 +150,7 @@ def fetch_part_data(lcsc_code: str, offline: bool = False) -> Dict[str, Any]:
             if jlc_tiers:
                 result["price_tiers"] = jlc_tiers
 
-    # 2) Query LCSC product detail API for full volume price breaks & real-time stock
+    # 2) Query LCSC product detail API for volume price breaks, warehouse stock, images & PDF
     lcsc_api = (
         "https://wmsc.lcsc.com/ftps/wm/product/detail?"
         + urllib.parse.urlencode({"productCode": code})
@@ -147,14 +167,33 @@ def fetch_part_data(lcsc_code: str, offline: bool = False) -> Dict[str, Any]:
             result["description"] = str(
                 prod.get("productIntroEn") or prod.get("productDescEn") or ""
             )
+
+        # Product image (LCSC returns productImages list, sometimes productImageUrl)
+        imgs = prod.get("productImages") or []
+        if isinstance(imgs, list):
+            for img in imgs:
+                if isinstance(img, str) and img.startswith("http"):
+                    result["product_image"] = img
+                    break
+        if not result["product_image"]:
+            for key in ("productImageUrl", "productImageUrlBig", "imageUrl"):
+                val = prod.get(key)
+                if isinstance(val, str) and val.startswith("http"):
+                    result["product_image"] = val
+                    break
+
         if prod.get("pdfUrl"):
             result["datasheet_url"] = str(prod["pdfUrl"])
+            result["datasheet_viewer_url"] = _build_inline_datasheet_url(
+                result["datasheet_url"], code
+            )
+
         if prod.get("stockNumber") is not None:
             try:
                 result["lcsc_stock"] = int(prod["stockNumber"])
             except (TypeError, ValueError):
                 pass
-        # Full tiered pricing from LCSC
+
         tiers: List[Dict[str, Any]] = []
         for row in prod.get("productPriceList") or []:
             if not isinstance(row, dict):
@@ -170,7 +209,6 @@ def fetch_part_data(lcsc_code: str, offline: bool = False) -> Dict[str, Any]:
             tiers.sort(key=lambda t: t["min_qty"])
             result["price_tiers"] = tiers
 
-    # Prefer JLC SMT stock when available, else LCSC warehouse stock
     if result["jlc_stock"] is not None:
         result["stock"] = result["jlc_stock"]
     elif result["lcsc_stock"] is not None:
@@ -242,467 +280,756 @@ def compute_board_summary(
     }
 
 
-def render_bom_html(payload: Dict[str, Any], embedded: bool = False) -> str:
-    data_json = json.dumps(payload, ensure_ascii=False)
-    # Safely escape </script> inside inline JSON
-    data_json = data_json.replace("</", "<\\/")
-    project_title = payload.get("display_name") or payload.get("project") or "PCB"
+def render_bom_fragment(payload: Dict[str, Any]) -> str:
+    """Return the Mintlify-styled interactive Priced BOM component (CSS + HTML + JS)
+    designed to render natively inside the docs shell or standalone."""
+    data_json = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
     version = payload.get("version") or "dev"
     fetched_at = payload.get("fetched_at") or ""
 
-    back_link = (
-        '<a class="back-link" href="index.html">← Back to Docs</a>'
-        if embedded
-        else ""
-    )
+    return f"""
+<style>
+  .bom-header {{
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end;
+    gap: 12px; margin-bottom: 20px;
+  }}
+  .bom-header h1 {{
+    margin: 0; font-size: 1.75rem; font-weight: 650; letter-spacing: -0.025em; border: none; padding: 0;
+  }}
+  .bom-sub {{ color: var(--muted); font-size: 0.875rem; margin-top: 4px; }}
 
+  .bom-controls {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }}
+  .bom-ctrl-top {{
+    display: flex; flex-wrap: wrap; align-items: center; gap: 16px; justify-content: space-between;
+  }}
+  .bom-field {{ display: flex; flex-direction: column; gap: 6px; }}
+  .bom-field-label {{
+    font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+  }}
+  .bom-slider-group {{
+    flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 8px;
+  }}
+  .bom-slider-row {{ display: flex; align-items: center; gap: 12px; }}
+  .bom-slider-row input[type="range"] {{
+    flex: 1; accent-color: var(--accent); height: 5px; cursor: pointer;
+  }}
+  .bom-qty-input {{
+    width: 82px; padding: 6px 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    font-size: 0.92rem; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums;
+  }}
+  .bom-select {{
+    padding: 7px 32px 7px 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    font-size: 0.88rem; font-weight: 500; cursor: pointer; min-width: 190px;
+  }}
+  .bom-select:focus, .bom-qty-input:focus, .bom-search:focus {{
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
+  }}
+  .bom-ctrl-bottom {{
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding-top: 12px; border-top: 1px solid var(--border);
+  }}
+  .bom-preset {{
+    background: var(--bg); color: var(--muted); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.8rem; font-weight: 500;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }}
+  .bom-preset:hover {{ color: var(--text); border-color: var(--border-strong); }}
+  .bom-preset.active {{
+    border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600;
+  }}
+  .bom-fee-toggle {{
+    margin-left: auto; display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.83rem; color: var(--muted); cursor: pointer; user-select: none;
+  }}
+  .bom-fee-toggle.disabled {{ opacity: 0.45; pointer-events: none; }}
+
+  .bom-kpis {{
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+    gap: 12px; margin-bottom: 16px;
+  }}
+  .bom-kpi {{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 16px;
+  }}
+  .bom-kpi-label {{
+    font-size: 0.74rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+  }}
+  .bom-kpi-val {{
+    font-size: 1.45rem; font-weight: 650; margin-top: 4px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+  }}
+  .bom-kpi-sub {{ font-size: 0.8rem; color: var(--muted); margin-top: 2px; }}
+
+  .bom-toolbar {{
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px;
+  }}
+  .bom-search {{
+    flex: 1; min-width: 220px; padding: 8px 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.88rem;
+  }}
+  .bom-pill {{
+    background: var(--surface); color: var(--muted); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 11px; font-size: 0.82rem; font-weight: 500; cursor: pointer;
+    transition: all 0.15s;
+  }}
+  .bom-pill:hover {{ color: var(--text); border-color: var(--border-strong); }}
+  .bom-pill.active {{ border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }}
+  .bom-btn {{
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 12px; font-size: 0.82rem; font-weight: 500; cursor: pointer;
+    text-decoration: none; transition: border-color 0.15s, background 0.15s;
+  }}
+  .bom-btn:hover {{ border-color: var(--border-strong); background: var(--surface-2); text-decoration: none; }}
+  .bom-btn.primary {{
+    background: var(--accent); border-color: var(--accent); color: #ffffff; font-weight: 600;
+  }}
+  .bom-btn.primary:hover {{ filter: brightness(1.06); }}
+
+  .bom-table-card {{
+    border: 1px solid var(--border); border-radius: 12px; background: var(--surface); overflow: hidden;
+  }}
+  .bom-table-scroll {{ overflow-x: auto; }}
+  table.bom-table {{ width: 100%; border-collapse: collapse; margin: 0; font-size: 0.86rem; }}
+  table.bom-table th, table.bom-table td {{
+    border: none; border-bottom: 1px solid var(--border); padding: 10px 12px; text-align: left; vertical-align: middle;
+  }}
+  table.bom-table thead th {{
+    background: var(--surface-2); color: var(--muted); font-size: 0.74rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; user-select: none; white-space: nowrap;
+  }}
+  table.bom-table thead th:hover {{ color: var(--text); }}
+  table.bom-table tbody tr.bom-row {{ cursor: pointer; transition: background 0.12s; }}
+  table.bom-table tbody tr.bom-row:hover {{ background: var(--hover); }}
+  table.bom-table tbody tr.bom-row.expanded {{ background: var(--surface-2); }}
+  table.bom-table tbody tr.bom-detail-row td {{
+    padding: 0; background: var(--bg); border-bottom: 1px solid var(--border);
+  }}
+  .bom-num {{ text-align: right !important; font-variant-numeric: tabular-nums; white-space: nowrap; }}
+
+  .bom-chev {{
+    width: 24px; color: var(--muted); transition: transform 0.15s ease; display: inline-flex; align-items: center; justify-content: center;
+  }}
+  tr.bom-row.expanded .bom-chev {{ transform: rotate(90deg); color: var(--text); }}
+
+  .bom-part-cell {{ display: flex; align-items: center; gap: 11px; min-width: 220px; }}
+  .bom-thumb {{
+    width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--border);
+    background: #ffffff; object-fit: contain; padding: 3px; flex-shrink: 0;
+  }}
+  .bom-thumb-placeholder {{
+    width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--muted);
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }}
+  .bom-part-title {{ font-weight: 600; color: var(--text); line-height: 1.3; }}
+  .bom-part-meta {{ font-size: 0.78rem; color: var(--muted); line-height: 1.35; margin-top: 2px; }}
+  .bom-mono {{ font-family: var(--mono); font-size: 0.8rem; }}
+
+  .bom-badge {{
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 8px; border-radius: 999px; font-size: 0.73rem; font-weight: 600; white-space: nowrap;
+    border: 1px solid transparent;
+  }}
+  .bom-dot {{ width: 6px; height: 6px; border-radius: 50%; display: inline-block; }}
+  .b-ok {{ background: rgba(16,185,129,0.12); color: #10b981; border-color: rgba(16,185,129,0.25); }}
+  .b-ok .bom-dot {{ background: #10b981; }}
+  .b-warn {{ background: rgba(245,158,11,0.12); color: #d97706; border-color: rgba(245,158,11,0.28); }}
+  .b-warn .bom-dot {{ background: #f59e0b; }}
+  .b-bad {{ background: rgba(239,68,68,0.12); color: #ef4444; border-color: rgba(239,68,68,0.28); }}
+  .b-bad .bom-dot {{ background: #ef4444; }}
+  .b-neutral {{ background: var(--surface-2); color: var(--muted); border-color: var(--border); }}
+  .b-basic {{ background: rgba(16,185,129,0.10); color: #10b981; border-color: rgba(16,185,129,0.22); }}
+  .b-pref {{ background: rgba(59,130,246,0.10); color: #3b82f6; border-color: rgba(59,130,246,0.22); }}
+  .b-ext {{ background: var(--surface-2); color: var(--muted); border-color: var(--border); }}
+
+  .bom-icon-link {{
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--border);
+    color: var(--muted); background: var(--bg); text-decoration: none; transition: all 0.15s;
+  }}
+  .bom-icon-link:hover {{ color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }}
+
+  /* Expandable JLC/LCSC-style detail drawer */
+  .bom-drawer {{
+    padding: 16px 20px 18px 46px;
+    display: grid;
+    grid-template-columns: auto 1.4fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }}
+  .bom-drawer-img {{
+    width: 88px; height: 88px; border-radius: 10px; border: 1px solid var(--border);
+    background: #ffffff; object-fit: contain; padding: 6px;
+  }}
+  .bom-kv-grid {{
+    display: grid; grid-template-columns: 110px 1fr; gap: 6px 12px; font-size: 0.83rem;
+  }}
+  .bom-kv-k {{ color: var(--muted); font-weight: 500; }}
+  .bom-kv-v {{ color: var(--text); word-break: break-word; }}
+  .bom-tiers-box {{
+    border: 1px solid var(--border); border-radius: 10px; background: var(--surface); overflow: hidden;
+  }}
+  .bom-tiers-head {{
+    padding: 7px 12px; font-size: 0.74rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--border);
+  }}
+  table.bom-tiers-tbl {{ width: 100%; border-collapse: collapse; margin: 0; font-size: 0.81rem; }}
+  table.bom-tiers-tbl td {{ padding: 5px 12px; border-bottom: 1px solid var(--border); }}
+  table.bom-tiers-tbl tr:last-child td {{ border-bottom: none; }}
+  table.bom-tiers-tbl tr.active-tier td {{
+    background: var(--accent-soft); color: var(--accent); font-weight: 600;
+  }}
+  .bom-drawer-actions {{
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;
+  }}
+  .bom-foot {{
+    margin-top: 12px; color: var(--muted); font-size: 0.8rem;
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px;
+  }}
+  @media (max-width: 900px) {{
+    .bom-drawer {{ grid-template-columns: 1fr; padding-left: 16px; }}
+  }}
+</style>
+
+<div class="bom-header">
+  <div>
+    <h1>Priced BOM &amp; Availability</h1>
+    <div class="bom-sub">Version <strong>{version}</strong> · Snapshot fetched {fetched_at} · Click any row to inspect price breaks, designators &amp; datasheet</div>
+  </div>
+</div>
+
+<section class="bom-controls">
+  <div class="bom-ctrl-top">
+    <div class="bom-slider-group">
+      <div class="bom-field-label">Board / Assembly Quantity</div>
+      <div class="bom-slider-row">
+        <input id="boardSlider" type="range" min="1" max="500" step="1" value="5" aria-label="Board count slider">
+        <input id="boardInput" class="bom-qty-input" type="number" min="1" max="10000" step="1" value="5" aria-label="Board count">
+        <span class="bom-sub" style="margin:0">boards</span>
+      </div>
+    </div>
+    <div class="bom-field">
+      <label class="bom-field-label" for="sourceSelect">Part Source &amp; Stock</label>
+      <select id="sourceSelect" class="bom-select">
+        <option value="jlc" selected>JLCPCB Parts (SMT)</option>
+        <option value="lcsc">LCSC (Direct Warehouse)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="bom-ctrl-bottom">
+    <span class="bom-sub" style="margin:0 4px 0 0">Presets:</span>
+    <button type="button" class="bom-preset" data-q="1">1</button>
+    <button type="button" class="bom-preset" data-q="2">2</button>
+    <button type="button" class="bom-preset active" data-q="5">5</button>
+    <button type="button" class="bom-preset" data-q="10">10</button>
+    <button type="button" class="bom-preset" data-q="25">25</button>
+    <button type="button" class="bom-preset" data-q="50">50</button>
+    <button type="button" class="bom-preset" data-q="100">100</button>
+    <button type="button" class="bom-preset" data-q="250">250</button>
+    <button type="button" class="bom-preset" data-q="500">500</button>
+    <label id="feeToggleLabel" class="bom-fee-toggle">
+      <input id="includeFeeder" type="checkbox" checked>
+      Include JLCPCB Extended feeder fee ($<span id="feeVal">3.00</span> / unique ext. part)
+    </label>
+  </div>
+</section>
+
+<section class="bom-kpis">
+  <div class="bom-kpi">
+    <div class="bom-kpi-label">Parts / Board</div>
+    <div class="bom-kpi-val" id="kpiPartsPerBoard">$0.00</div>
+    <div class="bom-kpi-sub" id="kpiPartsTotal">Total: $0.00</div>
+  </div>
+  <div class="bom-kpi">
+    <div class="bom-kpi-label" id="kpiFeesLabel">JLC Feeder Fees</div>
+    <div class="bom-kpi-val" id="kpiFees">$0.00</div>
+    <div class="bom-kpi-sub" id="kpiExtCount">0 extended parts</div>
+  </div>
+  <div class="bom-kpi">
+    <div class="bom-kpi-label">Est. Grand Total</div>
+    <div class="bom-kpi-val" id="kpiGrandTotal" style="color:var(--accent)">$0.00</div>
+    <div class="bom-kpi-sub" id="kpiGrandPerBoard">$0.00 / board</div>
+  </div>
+  <div class="bom-kpi">
+    <div class="bom-kpi-label" id="kpiStockLabel">JLC Stock Readiness</div>
+    <div class="bom-kpi-val" id="kpiStockHealth">—</div>
+    <div class="bom-kpi-sub" id="kpiStockSub">—</div>
+  </div>
+</section>
+
+<section class="bom-toolbar">
+  <input id="searchBox" class="bom-search" type="search" placeholder="Search value, MPN, designator, footprint, or LCSC code...">
+  <button type="button" class="bom-pill active" data-filter="all">All</button>
+  <button type="button" class="bom-pill" data-filter="basic" id="pillBasic">Basic / Pref</button>
+  <button type="button" class="bom-pill" data-filter="extended" id="pillExt">Extended</button>
+  <button type="button" class="bom-pill" data-filter="issue">Stock / Missing</button>
+  <button type="button" id="toggleExpandAll" class="bom-btn">Expand all</button>
+  <button type="button" id="exportCsv" class="bom-btn primary">Export CSV (<span id="exportQty">5</span>)</button>
+</section>
+
+<div class="bom-table-card">
+  <div class="bom-table-scroll">
+    <table class="bom-table">
+      <thead>
+        <tr>
+          <th style="width:32px"></th>
+          <th data-sort="comment">Component</th>
+          <th data-sort="lcsc">Part #</th>
+          <th data-sort="active_stock" class="bom-num" id="thStock">JLC Stock</th>
+          <th data-sort="total_qty" class="bom-num">Qty</th>
+          <th data-sort="unit_price" class="bom-num">Unit</th>
+          <th data-sort="line_total" class="bom-num">Total</th>
+          <th style="width:46px;text-align:center">Doc</th>
+        </tr>
+      </thead>
+      <tbody id="bomBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="bom-foot">
+  <span>Total placements/board: <strong id="footPlacements">0</strong> · Unique BOM lines: <strong id="footLines">0</strong></span>
+  <span>Excludes bare PCB fabrication, SMT assembly labor &amp; shipping</span>
+</div>
+
+<script>
+(function() {{
+  const BOM_DATA = {data_json};
+
+  let boardCount = 5;
+  let partSource = "jlc"; // "jlc" | "lcsc"
+  let includeFeeder = true;
+  let activeFilter = "all";
+  let searchTerm = "";
+  let sortKey = "designator_str";
+  let sortAsc = true;
+  const expandedSet = new Set();
+
+  const slider = document.getElementById("boardSlider");
+  const numInput = document.getElementById("boardInput");
+  const sourceSelect = document.getElementById("sourceSelect");
+  const feeCheckbox = document.getElementById("includeFeeder");
+  const feeToggleLabel = document.getElementById("feeToggleLabel");
+  const feeUnit = Number(BOM_DATA.extended_part_fee_usd ?? 3.0);
+
+  document.getElementById("feeVal").textContent = feeUnit.toFixed(2);
+  document.getElementById("footPlacements").textContent = BOM_DATA.total_components;
+  document.getElementById("footLines").textContent = BOM_DATA.unique_parts;
+
+  const CHIP_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M9 7V4m6 3V4M9 20v-3m6 3v-3M7 9H4m3 6H4m16-6h-3m3 6h-3"/></svg>';
+  const PDF_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+  const CHEV_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+
+  function escHtml(s) {{
+    return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }}
+
+  function fmtUsd(v, digits = 2) {{
+    if (v === null || v === undefined || Number.isNaN(v)) return "—";
+    return "$" + v.toFixed(digits);
+  }}
+
+  function fmtUnit(v) {{
+    if (v === null || v === undefined) return "—";
+    if (v < 0.01) return "$" + v.toFixed(5);
+    if (v < 1) return "$" + v.toFixed(4);
+    return "$" + v.toFixed(3);
+  }}
+
+  function getActiveTierIndex(tiers, totalQty) {{
+    if (!tiers || !tiers.length) return -1;
+    let idx = 0;
+    for (let i = 0; i < tiers.length; i++) {{
+      if (totalQty >= tiers[i].min_qty) idx = i;
+      else break;
+    }}
+    return idx;
+  }}
+
+  function computeRows() {{
+    return BOM_DATA.items.map((it, idx) => {{
+      const rowId = `${{it.designator_str}}__${{idx}}`;
+      const totalQty = it.quantity * boardCount;
+      const tierIdx = getActiveTierIndex(it.price_tiers, totalQty);
+      const unitPrice = tierIdx >= 0 ? it.price_tiers[tierIdx].unit_price : null;
+      const lineTotal = unitPrice !== null ? unitPrice * totalQty : null;
+      const hasLcsc = Boolean(it.lcsc);
+
+      // Select stock according to chosen supplier source
+      let activeStock = null;
+      let stockFallback = false;
+      if (partSource === "jlc") {{
+        if (it.jlc_stock !== null && it.jlc_stock !== undefined) {{
+          activeStock = it.jlc_stock;
+        }} else if (it.lcsc_stock !== null && it.lcsc_stock !== undefined) {{
+          activeStock = it.lcsc_stock;
+          stockFallback = true;
+        }}
+      }} else {{
+        if (it.lcsc_stock !== null && it.lcsc_stock !== undefined) {{
+          activeStock = it.lcsc_stock;
+        }} else if (it.jlc_stock !== null && it.jlc_stock !== undefined) {{
+          activeStock = it.jlc_stock;
+          stockFallback = true;
+        }}
+      }}
+
+      let status = "ok";
+      if (!hasLcsc) status = "missing";
+      else if (activeStock === null || activeStock === undefined) status = "unknown";
+      else if (activeStock === 0) status = "out";
+      else if (activeStock < totalQty) status = "short";
+      else if (activeStock < totalQty * 3) status = "low";
+
+      return {{
+        ...it,
+        _rowId: rowId,
+        total_qty: totalQty,
+        tier_idx: tierIdx,
+        unit_price: unitPrice,
+        line_total: lineTotal,
+        active_stock: activeStock,
+        stock_fallback: stockFallback,
+        status,
+      }};
+    }});
+  }}
+
+  function shortRefs(refs) {{
+    if (!refs || !refs.length) return "";
+    if (refs.length <= 4) return refs.join(", ");
+    return refs.slice(0, 4).join(", ") + ` +${{refs.length - 4}}`;
+  }}
+
+  function render() {{
+    const isJlc = partSource === "jlc";
+    document.getElementById("thStock").textContent = isJlc ? "JLC Stock" : "LCSC Stock";
+    document.getElementById("kpiStockLabel").textContent = isJlc ? "JLC Stock Readiness" : "LCSC Stock Readiness";
+    document.getElementById("kpiFeesLabel").textContent = isJlc ? "JLC Feeder Fees" : "Feeder Fees (N/A)";
+    feeToggleLabel.classList.toggle("disabled", !isJlc);
+    document.getElementById("pillBasic").style.display = isJlc ? "" : "none";
+    document.getElementById("pillExt").style.display = isJlc ? "" : "none";
+    if (!isJlc && (activeFilter === "basic" || activeFilter === "extended")) {{
+      activeFilter = "all";
+      document.querySelectorAll(".bom-pill").forEach(b => b.classList.toggle("active", b.dataset.filter === "all"));
+    }}
+
+    const rows = computeRows();
+    let partsTotal = 0;
+    const extCodes = new Set();
+    let okLines = 0, issueLines = 0, missingLines = 0;
+
+    for (const r of rows) {{
+      if (r.line_total !== null) partsTotal += r.line_total;
+      if (r.lcsc && r.library_type !== "Basic" && r.library_type !== "Preferred") extCodes.add(r.lcsc);
+      if (r.status === "ok" || r.status === "low") okLines++;
+      else {{
+        issueLines++;
+        if (r.status === "missing") missingLines++;
+      }}
+    }}
+
+    const extCount = extCodes.size;
+    const fees = (isJlc && includeFeeder) ? extCount * feeUnit : 0;
+    const grand = partsTotal + fees;
+
+    document.getElementById("kpiPartsPerBoard").textContent = fmtUsd(partsTotal / boardCount);
+    document.getElementById("kpiPartsTotal").textContent = `Total (${{boardCount}} bd): ${{fmtUsd(partsTotal)}}`;
+    document.getElementById("kpiFees").textContent = isJlc ? fmtUsd(fees) : "$0.00";
+    document.getElementById("kpiExtCount").textContent = isJlc
+      ? `${{extCount}} unique extended part${{extCount === 1 ? "" : "s"}}`
+      : "No SMT feeder fees on LCSC direct";
+    document.getElementById("kpiGrandTotal").textContent = fmtUsd(grand);
+    document.getElementById("kpiGrandPerBoard").textContent = `${{fmtUsd(grand / boardCount)}} / board`;
+    document.getElementById("exportQty").textContent = boardCount;
+
+    const stockEl = document.getElementById("kpiStockHealth");
+    stockEl.textContent = `${{okLines}} / ${{rows.length}}`;
+    stockEl.style.color = issueLines === 0 ? "#10b981" : (missingLines > 0 && issueLines === missingLines ? "#d97706" : "#ef4444");
+    document.getElementById("kpiStockSub").textContent =
+      issueLines === 0
+        ? `All parts available for ${{boardCount}} boards`
+        : `${{issueLines}} line${{issueLines === 1 ? "" : "s"}} need attention (${{missingLines}} missing LCSC)`;
+
+    // Filter
+    const q = searchTerm.trim().toLowerCase();
+    const filtered = rows.filter(r => {{
+      if (activeFilter === "basic" && r.library_type !== "Basic" && r.library_type !== "Preferred") return false;
+      if (activeFilter === "extended" && (!r.lcsc || r.library_type === "Basic" || r.library_type === "Preferred")) return false;
+      if (activeFilter === "issue" && r.status === "ok") return false;
+      if (!q) return true;
+      const hay = `${{r.designator_str}} ${{r.comment}} ${{r.footprint}} ${{r.lcsc}} ${{r.mfr || ""}} ${{r.brand || ""}} ${{r.description || ""}}`.toLowerCase();
+      return hay.includes(q);
+    }});
+
+    // Sort
+    filtered.sort((a, b) => {{
+      let va = a[sortKey], vb = b[sortKey];
+      if (va === null || va === undefined) va = sortAsc ? Infinity : -Infinity;
+      if (vb === null || vb === undefined) vb = sortAsc ? Infinity : -Infinity;
+      if (typeof va === "number" && typeof vb === "number") return sortAsc ? va - vb : vb - va;
+      return sortAsc
+        ? String(va).localeCompare(String(vb), undefined, {{ numeric: true }})
+        : String(vb).localeCompare(String(va), undefined, {{ numeric: true }});
+    }});
+
+    const tbody = document.getElementById("bomBody");
+    const htmlParts = [];
+
+    for (const r of filtered) {{
+      const isOpen = expandedSet.has(r._rowId);
+      const partUrl = isJlc ? r.jlc_url : r.lcsc_url;
+      const thumbHtml = r.product_image
+        ? `<img class="bom-thumb" src="${{escHtml(r.product_image)}}" alt="" loading="lazy" onerror="this.style.display='none'">`
+        : `<span class="bom-thumb-placeholder">${{CHIP_SVG}}</span>`;
+
+      let typePill = "";
+      if (isJlc && r.lcsc) {{
+        if (r.library_type === "Basic") typePill = '<span class="bom-badge b-basic">Basic</span>';
+        else if (r.library_type === "Preferred") typePill = '<span class="bom-badge b-pref">Pref</span>';
+        else typePill = '<span class="bom-badge b-ext">Extended</span>';
+      }}
+
+      let stockBadge = "";
+      const estTag = r.stock_fallback ? (isJlc ? " (LCSC)" : " (JLC)") : "";
+      if (r.status === "missing") stockBadge = '<span class="bom-badge b-warn"><span class="bom-dot"></span>No LCSC</span>';
+      else if (r.status === "unknown") stockBadge = '<span class="bom-badge b-neutral">Unknown</span>';
+      else if (r.status === "out") stockBadge = '<span class="bom-badge b-bad"><span class="bom-dot"></span>Out of stock</span>';
+      else if (r.status === "short") stockBadge = `<span class="bom-badge b-bad"><span class="bom-dot"></span>${{r.active_stock.toLocaleString()}} / ${{r.total_qty}}</span>`;
+      else if (r.status === "low") stockBadge = `<span class="bom-badge b-warn"><span class="bom-dot"></span>${{r.active_stock.toLocaleString()}}${{estTag}}</span>`;
+      else stockBadge = `<span class="bom-badge b-ok"><span class="bom-dot"></span>${{r.active_stock.toLocaleString()}}${{estTag}}</span>`;
+
+      const lcscLink = r.lcsc
+        ? `<a class="bom-mono" href="${{escHtml(partUrl)}}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${{escHtml(r.lcsc)}}</a>`
+        : '<span class="bom-badge b-warn">Missing</span>';
+
+      const docLink = r.datasheet_viewer_url
+        ? `<a class="bom-icon-link" href="${{escHtml(r.datasheet_viewer_url)}}" target="_blank" rel="noopener noreferrer" title="Open datasheet in new tab" onclick="event.stopPropagation()">${{PDF_SVG}}</a>`
+        : '<span style="color:var(--muted)">—</span>';
+
+      htmlParts.push(`
+        <tr class="bom-row ${{isOpen ? "expanded" : ""}}" data-id="${{escHtml(r._rowId)}}">
+          <td><span class="bom-chev">${{CHEV_SVG}}</span></td>
+          <td>
+            <div class="bom-part-cell">
+              ${{thumbHtml}}
+              <div>
+                <div class="bom-part-title">${{escHtml(r.comment)}}</div>
+                <div class="bom-part-meta">
+                  <span class="bom-mono">${{escHtml(shortRefs(r.designators))}}</span>
+                  ${{r.mfr ? ` · ${{escHtml(r.mfr)}}` : ""}}
+                </div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+              ${{lcscLink}}
+              ${{typePill}}
+            </div>
+          </td>
+          <td class="bom-num">${{stockBadge}}</td>
+          <td class="bom-num">
+            <strong>${{r.total_qty}}</strong>
+            <div class="bom-part-meta">${{r.quantity}}/bd</div>
+          </td>
+          <td class="bom-num">${{fmtUnit(r.unit_price)}}</td>
+          <td class="bom-num"><strong>${{fmtUsd(r.line_total, 3)}}</strong></td>
+          <td style="text-align:center">${{docLink}}</td>
+        </tr>
+      `);
+
+      if (isOpen) {{
+        const bigImg = r.product_image
+          ? `<img class="bom-drawer-img" src="${{escHtml(r.product_image)}}" alt="${{escHtml(r.comment)}}" loading="lazy">`
+          : `<div class="bom-drawer-img" style="display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--muted)">${{CHIP_SVG}}</div>`;
+
+        const jlcStockStr = (r.jlc_stock !== null && r.jlc_stock !== undefined) ? r.jlc_stock.toLocaleString() : "N/A";
+        const lcscStockStr = (r.lcsc_stock !== null && r.lcsc_stock !== undefined) ? r.lcsc_stock.toLocaleString() : "N/A";
+
+        let tiersHtml = '<div class="bom-tiers-box"><div class="bom-tiers-head">Volume Price Breaks</div>';
+        if (r.price_tiers && r.price_tiers.length) {{
+          tiersHtml += '<table class="bom-tiers-tbl"><tbody>';
+          r.price_tiers.forEach((t, ti) => {{
+            tiersHtml += `<tr class="${{ti === r.tier_idx ? "active-tier" : ""}}"><td>${{t.min_qty.toLocaleString()}}+</td><td class="bom-num">${{fmtUnit(t.unit_price)}}</td></tr>`;
+          }});
+          tiersHtml += '</tbody></table>';
+        }} else {{
+          tiersHtml += '<div style="padding:10px 12px;font-size:0.8rem;color:var(--muted)">No price break data</div>';
+        }}
+        tiersHtml += '</div>';
+
+        const actions = [];
+        if (r.datasheet_viewer_url) {{
+          actions.push(`<a class="bom-btn primary" href="${{escHtml(r.datasheet_viewer_url)}}" target="_blank" rel="noopener noreferrer">Open Datasheet ↗</a>`);
+        }}
+        if (r.jlc_url) {{
+          actions.push(`<a class="bom-btn" href="${{escHtml(r.jlc_url)}}" target="_blank" rel="noopener noreferrer">JLCPCB Part ↗</a>`);
+        }}
+        if (r.lcsc_url) {{
+          actions.push(`<a class="bom-btn" href="${{escHtml(r.lcsc_url)}}" target="_blank" rel="noopener noreferrer">LCSC Page ↗</a>`);
+        }}
+
+        htmlParts.push(`
+          <tr class="bom-detail-row">
+            <td colspan="8">
+              <div class="bom-drawer">
+                <div>${{bigImg}}</div>
+                <div>
+                  <div class="bom-kv-grid">
+                    <div class="bom-kv-k">Designators</div>
+                    <div class="bom-kv-v bom-mono">${{escHtml(r.designator_str)}}</div>
+                    <div class="bom-kv-k">Footprint</div>
+                    <div class="bom-kv-v bom-mono">${{escHtml(r.footprint)}}</div>
+                    ${{r.mfr ? `<div class="bom-kv-k">MPN / Brand</div><div class="bom-kv-v">${{escHtml(r.mfr)}}${{r.brand ? " · " + escHtml(r.brand) : ""}}</div>` : ""}}
+                    ${{r.description ? `<div class="bom-kv-k">Description</div><div class="bom-kv-v">${{escHtml(r.description)}}</div>` : ""}}
+                    <div class="bom-kv-k">Availability</div>
+                    <div class="bom-kv-v">JLCPCB SMT: <strong>${{jlcStockStr}}</strong> · LCSC Warehouse: <strong>${{lcscStockStr}}</strong></div>
+                  </div>
+                  <div class="bom-drawer-actions">${{actions.join("")}}</div>
+                </div>
+                <div>${{tiersHtml}}</div>
+              </div>
+            </td>
+          </tr>
+        `);
+      }}
+    }}
+
+    tbody.innerHTML = htmlParts.join("");
+
+    // Bind row fold/unfold click handlers
+    tbody.querySelectorAll("tr.bom-row").forEach(tr => {{
+      tr.addEventListener("click", () => {{
+        const id = tr.dataset.id;
+        if (expandedSet.has(id)) expandedSet.delete(id);
+        else expandedSet.add(id);
+        render();
+      }});
+    }});
+
+    const expandBtn = document.getElementById("toggleExpandAll");
+    expandBtn.textContent = expandedSet.size > 0 ? "Collapse all" : "Expand all";
+  }}
+
+  function setBoards(val) {{
+    const n = Math.max(1, Math.min(10000, parseInt(val, 10) || 1));
+    boardCount = n;
+    slider.value = Math.min(500, n);
+    numInput.value = n;
+    document.querySelectorAll(".bom-preset[data-q]").forEach(b => {{
+      b.classList.toggle("active", Number(b.dataset.q) === n);
+    }});
+    render();
+  }}
+
+  slider.addEventListener("input", e => setBoards(e.target.value));
+  numInput.addEventListener("input", e => setBoards(e.target.value));
+  sourceSelect.addEventListener("change", e => {{ partSource = e.target.value; render(); }});
+  feeCheckbox.addEventListener("change", e => {{ includeFeeder = e.target.checked; render(); }});
+  document.getElementById("searchBox").addEventListener("input", e => {{ searchTerm = e.target.value; render(); }});
+
+  document.querySelectorAll(".bom-preset[data-q]").forEach(btn => {{
+    btn.addEventListener("click", () => setBoards(btn.dataset.q));
+  }});
+  document.querySelectorAll(".bom-pill").forEach(btn => {{
+    btn.addEventListener("click", () => {{
+      document.querySelectorAll(".bom-pill").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      activeFilter = btn.dataset.filter;
+      render();
+    }});
+  }});
+  document.querySelectorAll("table.bom-table thead th[data-sort]").forEach(th => {{
+    th.addEventListener("click", () => {{
+      const k = th.dataset.sort;
+      if (sortKey === k) sortAsc = !sortAsc;
+      else {{ sortKey = k; sortAsc = true; }}
+      render();
+    }});
+  }});
+
+  document.getElementById("toggleExpandAll").addEventListener("click", () => {{
+    if (expandedSet.size > 0) {{
+      expandedSet.clear();
+    }} else {{
+      computeRows().forEach(r => expandedSet.add(r._rowId));
+    }}
+    render();
+  }});
+
+  document.getElementById("exportCsv").addEventListener("click", () => {{
+    const rows = computeRows();
+    const srcLabel = partSource === "jlc" ? "JLCPCB" : "LCSC";
+    const header = ["Designators", "Value", "Footprint", "LCSC Part #", "JLC Type", `${{srcLabel}} Stock`, "Qty/Board", `Total Qty (${{boardCount}} bd)`, "Unit Price (USD)", "Line Total (USD)", "Datasheet"];
+    const esc = v => `"${{String(v ?? "").replace(/"/g, '""')}}"`;
+    const lines = [header.map(esc).join(",")];
+    for (const r of rows) {{
+      lines.push([
+        r.designator_str, r.comment, r.footprint, r.lcsc, r.library_type,
+        r.active_stock ?? "", r.quantity, r.total_qty,
+        r.unit_price !== null ? r.unit_price.toFixed(5) : "",
+        r.line_total !== null ? r.line_total.toFixed(4) : "",
+        r.datasheet_viewer_url || ""
+      ].map(esc).join(","));
+    }}
+    const blob = new Blob([lines.join("\\n")], {{ type: "text/csv;charset=utf-8;" }});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${{BOM_DATA.project}}-${{BOM_DATA.version}}-bom-${{partSource}}-${{boardCount}}pcs.csv`;
+    a.click();
+  }});
+
+  render();
+}})();
+</script>
+"""
+
+
+def render_bom_html(payload: Dict[str, Any], accent: str = "#10b981") -> str:
+    """Standalone HTML wrapper around `render_bom_fragment` (used when opened outside docs)."""
+    project_title = payload.get("display_name") or payload.get("project") or "PCB"
+    version = payload.get("version") or "dev"
+    fragment = render_bom_fragment(payload)
     return f"""<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{project_title} ({version}) — Priced BOM &amp; Availability</title>
 <style>
   :root {{
-    --bg: #0d1117;
-    --surface: #161b22;
-    --surface-2: #1f2630;
-    --border: #30363d;
-    --text: #e6edf3;
-    --muted: #8b949e;
-    --accent: #58a6ff;
-    --green: #3fb950;
-    --yellow: #d29922;
-    --red: #f85149;
-    --purple: #bc8cff;
+    --bg: #09090b; --surface: #111113; --surface-2: #18181b; --hover: rgba(255,255,255,0.03);
+    --border: #27272a; --border-strong: #3f3f46;
+    --text: #fafafa; --muted: #a1a1aa;
+    --accent: {accent}; --accent-soft: color-mix(in srgb, {accent} 14%, transparent);
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   }}
   * {{ box-sizing: border-box; }}
   body {{
-    margin: 0;
-    padding: 24px;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    line-height: 1.5;
+    margin: 0; padding: 28px; background: var(--bg); color: var(--text);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.55;
   }}
-  .wrap {{ max-width: 1320px; margin: 0 auto; }}
-  header {{
-    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end;
-    gap: 12px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 14px;
-  }}
-  h1 {{ margin: 0; font-size: 1.55rem; }}
-  .meta {{ color: var(--muted); font-size: 0.88rem; }}
-  .back-link {{
-    color: var(--accent); text-decoration: none; font-size: 0.9rem; display: inline-block; margin-bottom: 6px;
-  }}
-  .back-link:hover {{ text-decoration: underline; }}
-
-  .control-panel {{
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 20px;
-    margin-bottom: 18px;
-  }}
-  .slider-row {{
-    display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
-  }}
-  .slider-label {{ font-weight: 600; min-width: 140px; }}
-  .slider-wrap {{ flex: 1; min-width: 220px; display: flex; align-items: center; gap: 12px; }}
-  input[type="range"] {{
-    flex: 1; accent-color: var(--accent); height: 6px; cursor: pointer;
-  }}
-  input[type="number"] {{
-    width: 88px; padding: 6px 10px; border-radius: 6px;
-    border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
-    font-size: 1rem; font-weight: 600; text-align: center;
-  }}
-  .presets {{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; align-items: center; }}
-  .presets button {{
-    background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
-    border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.84rem;
-  }}
-  .presets button:hover, .presets button.active {{
-    border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.12);
-  }}
-  .toggle-fee {{
-    margin-left: auto; display: inline-flex; align-items: center; gap: 8px;
-    font-size: 0.88rem; color: var(--muted); cursor: pointer;
-  }}
-
-  .kpis {{
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px; margin-bottom: 18px;
-  }}
-  .kpi {{
-    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-    padding: 14px 16px;
-  }}
-  .kpi-label {{ font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }}
-  .kpi-val {{ font-size: 1.55rem; font-weight: 700; margin-top: 4px; }}
-  .kpi-sub {{ font-size: 0.8rem; color: var(--muted); margin-top: 2px; }}
-
-  .toolbar {{
-    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px;
-  }}
-  .search {{
-    flex: 1; min-width: 220px; padding: 8px 12px; border-radius: 6px;
-    border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.92rem;
-  }}
-  .pill {{
-    background: var(--surface); color: var(--muted); border: 1px solid var(--border);
-    border-radius: 999px; padding: 5px 12px; font-size: 0.84rem; cursor: pointer;
-  }}
-  .pill.active {{ border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.12); }}
-  .btn-export {{
-    background: #238636; color: #fff; border: none; border-radius: 6px;
-    padding: 7px 14px; font-weight: 600; cursor: pointer; font-size: 0.86rem;
-  }}
-  .btn-export:hover {{ background: #2ea043; }}
-
-  .table-wrap {{
-    overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
-  }}
-  table {{ width: 100%; border-collapse: collapse; font-size: 0.88rem; }}
-  th, td {{ padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }}
-  th {{
-    background: var(--surface-2); color: var(--muted); font-weight: 600;
-    position: sticky; top: 0; cursor: pointer; user-select: none; white-space: nowrap;
-  }}
-  th:hover {{ color: var(--text); }}
-  tr:last-child td {{ border-bottom: none; }}
-  tr:hover td {{ background: rgba(255,255,255,0.025); }}
-  .num {{ text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }}
-  .refs {{ max-width: 210px; word-break: break-word; font-family: ui-monospace, monospace; font-size: 0.82rem; }}
-  .fp {{ color: var(--muted); font-size: 0.82rem; max-width: 220px; word-break: break-word; }}
-  a.lcsc {{ color: var(--accent); text-decoration: none; font-family: ui-monospace, monospace; font-weight: 600; }}
-  a.lcsc:hover {{ text-decoration: underline; }}
-
-  .badge {{
-    display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.76rem; font-weight: 600; white-space: nowrap;
-  }}
-  .b-basic {{ background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.35); }}
-  .b-pref {{ background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid rgba(88,166,255,0.35); }}
-  .b-ext {{ background: rgba(188,140,255,0.14); color: var(--purple); border: 1px solid rgba(188,140,255,0.35); }}
-  .b-ok {{ background: rgba(63,185,80,0.15); color: var(--green); }}
-  .b-warn {{ background: rgba(210,153,34,0.18); color: var(--yellow); }}
-  .b-bad {{ background: rgba(248,81,73,0.18); color: var(--red); }}
-  .b-muted {{ background: rgba(139,148,158,0.15); color: var(--muted); }}
-  .tiers-hint {{ font-size: 0.74rem; color: var(--muted); display: block; margin-top: 2px; }}
-  footer {{ margin-top: 16px; color: var(--muted); font-size: 0.8rem; }}
+  .standalone-wrap {{ max-width: 1220px; margin: 0 auto; }}
+  a {{ color: var(--accent); text-decoration: none; }}
+  a:hover {{ text-decoration: underline; }}
 </style>
 </head>
 <body>
-<div class="wrap">
-  {back_link}
-  <header>
-    <div>
-      <h1>{project_title} — JLCPCB Priced BOM &amp; Availability</h1>
-      <div class="meta">Version: <strong>{version}</strong> · Prices &amp; stock snapshot fetched: <strong>{fetched_at}</strong></div>
-    </div>
-    <div class="meta">Pricing uses JLCPCB / LCSC volume breaks · Does not include bare PCB fabrication or shipping</div>
-  </header>
-
-  <section class="control-panel">
-    <div class="slider-row">
-      <div class="slider-label">Board / Assembly Count</div>
-      <div class="slider-wrap">
-        <input id="boardSlider" type="range" min="1" max="500" step="1" value="5">
-        <input id="boardInput" type="number" min="1" max="10000" step="1" value="5">
-        <span class="meta">boards</span>
-      </div>
-    </div>
-    <div class="presets">
-      <span class="meta">Quick qty:</span>
-      <button type="button" data-q="1">1</button>
-      <button type="button" data-q="2">2</button>
-      <button type="button" data-q="5" class="active">5</button>
-      <button type="button" data-q="10">10</button>
-      <button type="button" data-q="25">25</button>
-      <button type="button" data-q="50">50</button>
-      <button type="button" data-q="100">100</button>
-      <button type="button" data-q="250">250</button>
-      <button type="button" data-q="500">500</button>
-      <label class="toggle-fee">
-        <input id="includeFeeder" type="checkbox" checked>
-        Include JLCPCB Extended feeder fee ($<span id="feeVal">3.00</span> / unique extended part)
-      </label>
-    </div>
-  </section>
-
-  <section class="kpis">
-    <div class="kpi">
-      <div class="kpi-label">Components / Board</div>
-      <div class="kpi-val" id="kpiPartsPerBoard">$0.00</div>
-      <div class="kpi-sub" id="kpiPartsTotal">Total: $0.00</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Extended Feeder Fees</div>
-      <div class="kpi-val" id="kpiFees">$0.00</div>
-      <div class="kpi-sub" id="kpiExtCount">0 extended parts</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Est. Total (Parts + Fees)</div>
-      <div class="kpi-val" id="kpiGrandTotal" style="color:var(--accent)">$0.00</div>
-      <div class="kpi-sub" id="kpiGrandPerBoard">$0.00 / board</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Stock Availability</div>
-      <div class="kpi-val" id="kpiStockHealth">—</div>
-      <div class="kpi-sub" id="kpiStockSub">—</div>
-    </div>
-  </section>
-
-  <section class="toolbar">
-    <input id="searchBox" class="search" type="search" placeholder="Filter by designator, value, footprint, MPN, or LCSC code...">
-    <button class="pill active" data-filter="all">All</button>
-    <button class="pill" data-filter="basic">Basic / Pref</button>
-    <button class="pill" data-filter="extended">Extended</button>
-    <button class="pill" data-filter="issue">Stock / Missing Issues</button>
-    <button id="exportCsv" class="btn-export" type="button">Download CSV (<span id="exportQty">5</span> boards)</button>
-  </section>
-
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th data-sort="designator_str">Designators</th>
-          <th data-sort="comment">Value / MPN</th>
-          <th data-sort="footprint">Footprint</th>
-          <th data-sort="lcsc">LCSC Part #</th>
-          <th data-sort="library_type">JLC Type</th>
-          <th data-sort="stock" class="num">Stock</th>
-          <th data-sort="quantity" class="num">Qty / Bd</th>
-          <th data-sort="total_qty" class="num">Total Qty</th>
-          <th data-sort="unit_price" class="num">Unit Price</th>
-          <th data-sort="line_total" class="num">Line Total</th>
-        </tr>
-      </thead>
-      <tbody id="bomBody"></tbody>
-    </table>
-  </div>
-
-  <footer>
-    Total placements per board: <strong id="footPlacements">0</strong> · Unique BOM lines: <strong id="footLines">0</strong> · Click any column header to sort.
-  </footer>
-</div>
-
-<script>
-const BOM_DATA = {data_json};
-
-let boardCount = 5;
-let includeFeeder = true;
-let activeFilter = "all";
-let searchTerm = "";
-let sortKey = "designator_str";
-let sortAsc = true;
-
-const slider = document.getElementById("boardSlider");
-const numInput = document.getElementById("boardInput");
-const feeCheckbox = document.getElementById("includeFeeder");
-const feeUnit = Number(BOM_DATA.extended_part_fee_usd ?? 3.0);
-document.getElementById("feeVal").textContent = feeUnit.toFixed(2);
-document.getElementById("footPlacements").textContent = BOM_DATA.total_components;
-document.getElementById("footLines").textContent = BOM_DATA.unique_parts;
-
-function fmtUsd(v, digits = 2) {{
-  if (v === null || v === undefined || Number.isNaN(v)) return "—";
-  return "$" + v.toFixed(digits);
-}}
-
-function fmtUnit(v) {{
-  if (v === null || v === undefined) return "—";
-  if (v < 0.01) return "$" + v.toFixed(5);
-  if (v < 1) return "$" + v.toFixed(4);
-  return "$" + v.toFixed(3);
-}}
-
-function getTierPrice(tiers, totalQty) {{
-  if (!tiers || !tiers.length) return null;
-  let chosen = tiers[0].unit_price;
-  for (const t of tiers) {{
-    if (totalQty >= t.min_qty) chosen = t.unit_price;
-    else break;
-  }}
-  return chosen;
-}}
-
-function computeRows() {{
-  return BOM_DATA.items.map(it => {{
-    const totalQty = it.quantity * boardCount;
-    const unitPrice = getTierPrice(it.price_tiers, totalQty);
-    const lineTotal = unitPrice !== null ? unitPrice * totalQty : null;
-    const hasLcsc = Boolean(it.lcsc);
-    const stock = it.stock;
-    let status = "ok";
-    if (!hasLcsc) status = "missing";
-    else if (stock === null || stock === undefined) status = "unknown";
-    else if (stock === 0) status = "out";
-    else if (stock < totalQty) status = "short";
-    else if (stock < totalQty * 3) status = "low";
-    return {{ ...it, total_qty: totalQty, unit_price: unitPrice, line_total: lineTotal, status }};
-  }});
-}}
-
-function render() {{
-  const rows = computeRows();
-
-  let partsTotal = 0;
-  const extCodes = new Set();
-  let okLines = 0;
-  let issueLines = 0;
-  let missingLines = 0;
-
-  for (const r of rows) {{
-    if (r.line_total !== null) partsTotal += r.line_total;
-    if (r.lcsc && r.library_type !== "Basic" && r.library_type !== "Preferred") extCodes.add(r.lcsc);
-    if (r.status === "ok" || r.status === "low") okLines++;
-    else {{
-      issueLines++;
-      if (r.status === "missing") missingLines++;
-    }}
-  }}
-
-  const extCount = extCodes.size;
-  const fees = includeFeeder ? extCount * feeUnit : 0;
-  const grand = partsTotal + fees;
-
-  document.getElementById("kpiPartsPerBoard").textContent = fmtUsd(partsTotal / boardCount);
-  document.getElementById("kpiPartsTotal").textContent = `Total (${{boardCount}} boards): ${{fmtUsd(partsTotal)}}`;
-  document.getElementById("kpiFees").textContent = fmtUsd(fees);
-  document.getElementById("kpiExtCount").textContent = `${{extCount}} extended part${{extCount === 1 ? "" : "s"}}`;
-  document.getElementById("kpiGrandTotal").textContent = fmtUsd(grand);
-  document.getElementById("kpiGrandPerBoard").textContent = `${{fmtUsd(grand / boardCount)}} / board`;
-  document.getElementById("exportQty").textContent = boardCount;
-
-  const stockEl = document.getElementById("kpiStockHealth");
-  stockEl.textContent = `${{okLines}} / ${{rows.length}} ready`;
-  stockEl.style.color = issueLines === 0 ? "var(--green)" : (missingLines > 0 ? "var(--yellow)" : "var(--red)");
-  document.getElementById("kpiStockSub").textContent =
-    issueLines === 0
-      ? `All parts in stock for ${{boardCount}} boards`
-      : `${{issueLines}} line${{issueLines === 1 ? "" : "s"}} need attention (${{missingLines}} missing LCSC)`;
-
-  // Filter
-  const q = searchTerm.trim().toLowerCase();
-  let filtered = rows.filter(r => {{
-    if (activeFilter === "basic" && r.library_type !== "Basic" && r.library_type !== "Preferred") return false;
-    if (activeFilter === "extended" && (!r.lcsc || r.library_type === "Basic" || r.library_type === "Preferred")) return false;
-    if (activeFilter === "issue" && (r.status === "ok")) return false;
-    if (!q) return true;
-    const hay = `${{r.designator_str}} ${{r.comment}} ${{r.footprint}} ${{r.lcsc}} ${{r.mfr || ""}} ${{r.description || ""}}`.toLowerCase();
-    return hay.includes(q);
-  }});
-
-  // Sort
-  filtered.sort((a, b) => {{
-    let va = a[sortKey], vb = b[sortKey];
-    if (va === null || va === undefined) va = sortAsc ? Infinity : -Infinity;
-    if (vb === null || vb === undefined) vb = sortAsc ? Infinity : -Infinity;
-    if (typeof va === "number" && typeof vb === "number") return sortAsc ? va - vb : vb - va;
-    return sortAsc ? String(va).localeCompare(String(vb), undefined, {{ numeric: true }})
-                   : String(vb).localeCompare(String(va), undefined, {{ numeric: true }});
-  }});
-
-  const tbody = document.getElementById("bomBody");
-  tbody.innerHTML = filtered.map(r => {{
-    let libBadge = '<span class="badge b-muted">—</span>';
-    if (r.lcsc) {{
-      if (r.library_type === "Basic") libBadge = '<span class="badge b-basic">Basic</span>';
-      else if (r.library_type === "Preferred") libBadge = '<span class="badge b-pref">Preferred</span>';
-      else libBadge = '<span class="badge b-ext">Extended</span>';
-    }}
-
-    let stockHtml = "";
-    if (r.status === "missing") stockHtml = '<span class="badge b-warn">No LCSC</span>';
-    else if (r.status === "unknown") stockHtml = '<span class="badge b-muted">Unknown</span>';
-    else if (r.status === "out") stockHtml = '<span class="badge b-bad">Out of Stock</span>';
-    else if (r.status === "short") stockHtml = `<span class="badge b-bad">${{r.stock.toLocaleString()}} (need ${{r.total_qty}})</span>`;
-    else if (r.status === "low") stockHtml = `<span class="badge b-warn">${{r.stock.toLocaleString()}} (low)</span>`;
-    else stockHtml = `<span class="badge b-ok">${{r.stock.toLocaleString()}}</span>`;
-
-    const lcscHtml = r.lcsc
-      ? `<a class="lcsc" href="${{r.lcsc_url}}" target="_blank" rel="noopener">${{r.lcsc}}</a>`
-      : '<span class="badge b-warn">Missing</span>';
-
-    const mfrSub = r.mfr ? `<div class="tiers-hint">${{r.mfr}}</div>` : "";
-    const tierHint = (r.price_tiers && r.price_tiers.length > 1)
-      ? `<span class="tiers-hint">${{r.price_tiers.slice(0, 3).map(t => `${{t.min_qty}}+: ${{fmtUnit(t.unit_price)}}`).join(" · ")}}</span>`
-      : "";
-
-    return `<tr>
-      <td class="refs">${{r.designator_str}}</td>
-      <td><strong>${{r.comment}}</strong>${{mfrSub}}</td>
-      <td class="fp">${{r.footprint}}</td>
-      <td>${{lcscHtml}}</td>
-      <td>${{libBadge}}</td>
-      <td class="num">${{stockHtml}}</td>
-      <td class="num">${{r.quantity}}</td>
-      <td class="num"><strong>${{r.total_qty}}</strong></td>
-      <td class="num">${{fmtUnit(r.unit_price)}}${{tierHint}}</td>
-      <td class="num"><strong>${{fmtUsd(r.line_total, 3)}}</strong></td>
-    </tr>`;
-  }}).join("");
-}}
-
-function setBoards(val) {{
-  const n = Math.max(1, Math.min(10000, parseInt(val, 10) || 1));
-  boardCount = n;
-  slider.value = Math.min(500, n);
-  numInput.value = n;
-  document.querySelectorAll(".presets button[data-q]").forEach(b => {{
-    b.classList.toggle("active", Number(b.dataset.q) === n);
-  }});
-  render();
-}}
-
-slider.addEventListener("input", e => setBoards(e.target.value));
-numInput.addEventListener("input", e => setBoards(e.target.value));
-feeCheckbox.addEventListener("change", e => {{ includeFeeder = e.target.checked; render(); }});
-document.getElementById("searchBox").addEventListener("input", e => {{ searchTerm = e.target.value; render(); }});
-
-document.querySelectorAll(".presets button[data-q]").forEach(btn => {{
-  btn.addEventListener("click", () => setBoards(btn.dataset.q));
-}});
-document.querySelectorAll(".pill").forEach(btn => {{
-  btn.addEventListener("click", () => {{
-    document.querySelectorAll(".pill").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    activeFilter = btn.dataset.filter;
-    render();
-  }});
-}});
-document.querySelectorAll("th[data-sort]").forEach(th => {{
-  th.addEventListener("click", () => {{
-    const k = th.dataset.sort;
-    if (sortKey === k) sortAsc = !sortAsc;
-    else {{ sortKey = k; sortAsc = true; }}
-    render();
-  }});
-}});
-
-document.getElementById("exportCsv").addEventListener("click", () => {{
-  const rows = computeRows();
-  const header = ["Designators", "Value", "Footprint", "LCSC Part #", "JLC Type", "Stock", "Qty/Board", `Total Qty (${{boardCount}} bd)`, "Unit Price (USD)", "Line Total (USD)"];
-  const esc = v => `"${{String(v ?? "").replace(/"/g, '""')}}"`;
-  const lines = [header.map(esc).join(",")];
-  for (const r of rows) {{
-    lines.push([
-      r.designator_str, r.comment, r.footprint, r.lcsc, r.library_type,
-      r.stock ?? "", r.quantity, r.total_qty,
-      r.unit_price !== null ? r.unit_price.toFixed(5) : "",
-      r.line_total !== null ? r.line_total.toFixed(4) : ""
-    ].map(esc).join(","));
-  }}
-  const blob = new Blob([lines.join("\\n")], {{ type: "text/csv;charset=utf-8;" }});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `${{BOM_DATA.project}}-${{BOM_DATA.version}}-bom-${{boardCount}}pcs.csv`;
-  a.click();
-}});
-
-render();
-</script>
+  <div class="standalone-wrap">{fragment}</div>
 </body>
 </html>
 """
@@ -715,7 +1042,7 @@ def main() -> int:
     ap.add_argument("--version", default="dev", help="Release version or SHA")
     ap.add_argument("--config", default=None, help="Path to ci/config.yml")
     ap.add_argument("--offline", action="store_true", help="Skip HTTP calls (offline dry-run)")
-    ap.add_argument("--embedded", action="store_true", help="Include back-to-docs link in bom.html")
+    ap.add_argument("--embedded", action="store_true", help="(Deprecated, kept for compatibility)")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -741,6 +1068,8 @@ def main() -> int:
     for it in bom_data["items"]:
         code = it.get("lcsc") or ""
         info = fetched.get(code, {})
+        raw_ds = info.get("datasheet_url") or it.get("datasheet", "")
+        viewer_ds = info.get("datasheet_viewer_url") or _build_inline_datasheet_url(raw_ds, code)
         merged = dict(it)
         merged.update(
             {
@@ -753,7 +1082,9 @@ def main() -> int:
                 "lcsc_stock": info.get("lcsc_stock"),
                 "stock": info.get("stock"),
                 "price_tiers": info.get("price_tiers", []),
-                "datasheet_url": info.get("datasheet_url") or it.get("datasheet", ""),
+                "product_image": info.get("product_image", ""),
+                "datasheet_url": raw_ds,
+                "datasheet_viewer_url": viewer_ds,
                 "lcsc_url": info.get("lcsc_url", ""),
                 "jlc_url": info.get("jlc_url", ""),
             }
@@ -796,12 +1127,14 @@ def main() -> int:
                 "Qty/Board",
                 "LCSC Part #",
                 "JLC Type",
-                "Stock",
+                "JLC Stock",
+                "LCSC Stock",
                 "Unit @1bd (USD)",
                 "Unit @5bd (USD)",
                 "Unit @10bd (USD)",
                 "Unit @50bd (USD)",
                 "MPN",
+                "Datasheet",
             ]
         )
         for it in enriched_items:
@@ -819,17 +1152,20 @@ def main() -> int:
                     q,
                     it["lcsc"],
                     it["library_type"],
-                    "" if it["stock"] is None else it["stock"],
+                    "" if it["jlc_stock"] is None else it["jlc_stock"],
+                    "" if it["lcsc_stock"] is None else it["lcsc_stock"],
                     "" if p1 is None else f"{p1:.5f}",
                     "" if p5 is None else f"{p5:.5f}",
                     "" if p10 is None else f"{p10:.5f}",
                     "" if p50 is None else f"{p50:.5f}",
                     it["mfr"],
+                    it["datasheet_viewer_url"],
                 ]
             )
 
+    accent = cfg.get("docs", {}).get("accent_color", "#10b981")
     bom_html = out_dir / "bom.html"
-    bom_html.write_text(render_bom_html(payload, embedded=args.embedded), encoding="utf-8")
+    bom_html.write_text(render_bom_html(payload, accent=accent), encoding="utf-8")
 
     s5 = summaries["5"]
     print(

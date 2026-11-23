@@ -71,3 +71,8 @@ docs:
   manual_dir: "docs"
   # Optional changelog file included in GitHub Releases if present
   changelog: "docs/CHANGELOG.md"
+  # Mintlify-style brand accent hex (used across light & dark themes)
+  accent_color: "#10b981"
+  # Optional external docs link shown in the top bar
+  external_docs_url: "https://docs.e-spin.fr"
+  external_docs_label: "docs.e-spin.fr"

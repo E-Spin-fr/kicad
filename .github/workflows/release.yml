@@ -121,6 +121,7 @@ jobs:
             --version "${{ steps.meta.outputs.version }}" \
             --jlcpcb-dir build/jlcpcb \
             --ibom build/ibom/ibom.html \
+            --bom-json build/bom/bom-priced.json \
             --bom-html build/bom/bom.html \
             --bom-csv "build/bom/${{ steps.meta.outputs.prefix }}-bom-priced.csv" \
             --checks-md build/reports/checks-summary.md \

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate KiCad 10 documentation assets (Schematic PDF/SVG, 2D SVG, 3D PNG, STEP)
-and compile a static GitHub Pages site combining manual docs (`docs/*.md`) with
-auto-generated hardware artifacts (iBOM, Priced BOM slider, Renders, Reports, Downloads).
+and compile a Mintlify-inspired static GitHub Pages site combining manual docs (`docs/*.md`)
+with natively integrated hardware views (Priced BOM, Interactive BOM, Renders, Schematic, Reports, Downloads).
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import markdown
 
 from config_loader import kicad_env, load_config, resolve_project_path
+from jlc_bom_pricing import render_bom_fragment
 
 
 def _run(cmd: List[str], check: bool = True) -> subprocess.CompletedProcess:
@@ -125,7 +126,6 @@ def export_kicad_docs(
                 cmd.extend(["--rotate", str(view["rotate"])])
             cmd.append(str(pcb_path))
             res = _run(cmd, check=False)
-            # Fallback to basic quality if raytrace fails in constrained runner
             if res.returncode != 0 or not out_png.is_file():
                 cmd[cmd.index(quality)] = "basic"
                 _run(cmd, check=False)
@@ -148,7 +148,6 @@ def export_kicad_docs(
             check=False,
         )
 
-    # Zip all renders for release attachment
     renders_zip = out_dir / f"{prefix}-renders.zip"
     with zipfile.ZipFile(renders_zip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for f in sorted(renders_dir.iterdir()):
@@ -196,11 +195,14 @@ def _discover_manual_pages(manual_dir: Path) -> List[Dict[str, Any]]:
         if meta.get("publish", "true").lower() == "false":
             continue
         slug = "index" if md_file.stem.lower() == "index" else md_file.stem.lower()
-        # Infer title from frontmatter -> first H1 -> filename
         title = meta.get("title", "")
         if not title:
             m = re.search(r"^#\s+(.+)$", body, flags=re.MULTILINE)
-            title = m.group(1).strip() if m else md_file.stem.replace("-", " ").replace("_", " ").title()
+            title = (
+                m.group(1).strip()
+                if m
+                else md_file.stem.replace("-", " ").replace("_", " ").title()
+            )
         default_order = 0 if slug == "index" else (90 if slug == "changelog" else 50)
         try:
             order = int(meta.get("order", default_order))
@@ -221,6 +223,7 @@ def _discover_manual_pages(manual_dir: Path) -> List[Dict[str, Any]]:
 
 
 def _site_shell(
+    cfg: Dict[str, Any],
     site_title: str,
     version: str,
     page_title: str,
@@ -228,7 +231,13 @@ def _site_shell(
     manual_nav: List[Dict[str, Any]],
     auto_nav: List[Tuple[str, str]],
     content_html: str,
+    layout_mode: str = "prose",  # "prose" | "wide" | "fullbleed"
 ) -> str:
+    docs_cfg = cfg.get("docs", {})
+    accent = docs_cfg.get("accent_color", "#10b981")
+    ext_url = docs_cfg.get("external_docs_url", "")
+    ext_label = docs_cfg.get("external_docs_label", "Main Docs")
+
     def _nav_links(items: List[Tuple[str, str]]) -> str:
         out = []
         for label, href in items:
@@ -238,95 +247,251 @@ def _site_shell(
 
     manual_links = _nav_links([(p["title"], p["href"]) for p in manual_nav])
     auto_links = _nav_links(auto_nav)
+    ext_link_html = (
+        f'<a class="top-link" href="{html.escape(ext_url)}" target="_blank" rel="noopener noreferrer">'
+        f"{html.escape(ext_label)} ↗</a>"
+        if ext_url
+        else ""
+    )
+
+    main_cls = f"layout-{layout_mode}"
 
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{html.escape(page_title)} — {html.escape(site_title)} ({html.escape(version)})</title>
+<title>{html.escape(page_title)} — {html.escape(site_title)}</title>
+<script>
+  (function() {{
+    const saved = localStorage.getItem("espin-theme");
+    const theme = saved || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+    document.documentElement.setAttribute("data-theme", theme);
+  }})();
+</script>
 <style>
-  :root {{
-    --bg: #0d1117; --surface: #161b22; --surface-2: #1f2630;
-    --border: #30363d; --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+  :root, [data-theme="dark"] {{
+    --bg: #09090b;
+    --bg-translucent: rgba(9, 9, 11, 0.82);
+    --surface: #111113;
+    --surface-2: #18181b;
+    --hover: rgba(255, 255, 255, 0.04);
+    --border: #27272a;
+    --border-strong: #3f3f46;
+    --text: #fafafa;
+    --text-secondary: #d4d4d8;
+    --muted: #a1a1aa;
+    --accent: {accent};
+    --accent-soft: color-mix(in srgb, {accent} 13%, transparent);
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }}
+  [data-theme="light"] {{
+    --bg: #ffffff;
+    --bg-translucent: rgba(255, 255, 255, 0.86);
+    --surface: #fafafa;
+    --surface-2: #f4f4f5;
+    --hover: rgba(0, 0, 0, 0.035);
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+    --text: #09090b;
+    --text-secondary: #27272a;
+    --muted: #71717a;
+    --accent: color-mix(in srgb, {accent} 88%, #000000);
+    --accent-soft: color-mix(in srgb, {accent} 12%, transparent);
   }}
   * {{ box-sizing: border-box; }}
-  body {{
-    margin: 0; background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    line-height: 1.6; display: flex; min-height: 100vh;
+  html, body {{ margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.65; -webkit-font-smoothing: antialiased; }}
+
+  /* Mintlify-style sticky topbar */
+  .topbar {{
+    position: sticky; top: 0; z-index: 40; height: 56px;
+    background: var(--bg-translucent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; gap: 12px;
   }}
-  nav {{
-    width: 260px; flex-shrink: 0; background: var(--surface);
-    border-right: 1px solid var(--border); padding: 20px 16px;
-    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  .topbar-left {{ display: flex; align-items: center; gap: 10px; min-width: 0; }}
+  .menu-btn {{
+    display: none; background: transparent; border: 1px solid var(--border); color: var(--text);
+    width: 34px; height: 34px; border-radius: 8px; cursor: pointer; align-items: center; justify-content: center;
   }}
-  .brand {{ font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }}
-  .ver {{
-    display: inline-block; font-size: 0.78rem; padding: 2px 8px; border-radius: 999px;
-    background: rgba(88,166,255,0.14); color: var(--accent); margin-bottom: 18px;
+  .brand-link {{
+    display: inline-flex; align-items: center; gap: 9px;
+    font-weight: 650; font-size: 0.98rem; letter-spacing: -0.015em;
+    color: var(--text); text-decoration: none;
   }}
-  .nav-sec {{
-    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
-    color: var(--muted); margin: 16px 0 6px 8px; font-weight: 600;
+  .brand-dot {{
+    width: 9px; height: 9px; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
   }}
-  nav a {{
-    display: block; padding: 7px 10px; border-radius: 6px; color: var(--text);
-    text-decoration: none; font-size: 0.92rem; margin-bottom: 2px;
+  .ver-pill {{
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 500;
+    padding: 2px 8px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
   }}
-  nav a:hover {{ background: var(--surface-2); }}
-  nav a.active {{ background: rgba(88,166,255,0.16); color: var(--accent); font-weight: 600; }}
-  main {{ flex: 1; padding: 32px 40px; max-width: 1120px; min-width: 0; }}
-  h1, h2, h3 {{ border-bottom: 1px solid var(--border); padding-bottom: 6px; }}
-  h3 {{ border-bottom: none; }}
-  a {{ color: var(--accent); }}
-  img {{ max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); }}
-  pre {{ background: var(--surface); border: 1px solid var(--border); padding: 14px; border-radius: 8px; overflow-x: auto; }}
-  code {{ background: var(--surface-2); padding: 2px 5px; border-radius: 4px; font-size: 0.88em; }}
+  .topbar-right {{ display: flex; align-items: center; gap: 10px; }}
+  .top-link {{
+    font-size: 0.84rem; font-weight: 500; color: var(--muted); text-decoration: none;
+    padding: 5px 10px; border-radius: 7px; transition: color 0.15s, background 0.15s;
+  }}
+  .top-link:hover {{ color: var(--text); background: var(--hover); }}
+  .theme-btn {{
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 8px;
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    cursor: pointer; transition: color 0.15s, border-color 0.15s;
+  }}
+  .theme-btn:hover {{ color: var(--text); border-color: var(--border-strong); }}
+
+  /* Shell layout */
+  .shell {{ display: flex; min-height: calc(100vh - 56px); }}
+  aside.sidebar {{
+    width: 256px; flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+    padding: 20px 14px;
+    position: sticky; top: 56px; height: calc(100vh - 56px); overflow-y: auto;
+  }}
+  .nav-group-title {{
+    font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); padding: 0 10px; margin: 18px 0 6px;
+  }}
+  .nav-group-title:first-child {{ margin-top: 0; }}
+  aside.sidebar a {{
+    display: flex; align-items: center; padding: 7px 10px; border-radius: 8px;
+    color: var(--muted); text-decoration: none; font-size: 0.875rem; font-weight: 500;
+    margin-bottom: 2px; transition: background 0.12s, color 0.12s;
+  }}
+  aside.sidebar a:hover {{ background: var(--hover); color: var(--text); }}
+  aside.sidebar a.active {{
+    background: var(--accent-soft); color: var(--accent); font-weight: 600;
+  }}
+
+  main {{ flex: 1; min-width: 0; }}
+  main.layout-prose {{ padding: 36px 48px 64px; max-width: 920px; }}
+  main.layout-wide {{ padding: 28px 36px 48px; max-width: 1320px; }}
+  main.layout-fullbleed {{ padding: 0; display: flex; flex-direction: column; height: calc(100vh - 56px); }}
+
+  /* Clean typography */
+  h1 {{ font-size: 1.85rem; font-weight: 650; letter-spacing: -0.025em; margin: 0 0 16px; line-height: 1.25; }}
+  h2 {{ font-size: 1.3rem; font-weight: 600; letter-spacing: -0.015em; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }}
+  h3 {{ font-size: 1.05rem; font-weight: 600; margin: 22px 0 8px; }}
+  p {{ color: var(--text-secondary); margin: 0 0 14px; }}
+  a {{ color: var(--accent); text-decoration: none; }}
+  a:hover {{ text-decoration: underline; }}
+  img {{ max-width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--border); }}
+  pre {{
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 0.85rem;
+  }}
+  code {{
+    font-family: var(--mono); background: var(--surface-2);
+    padding: 2px 6px; border-radius: 5px; font-size: 0.84em;
+  }}
   pre code {{ background: none; padding: 0; }}
-  table {{ width: 100%; border-collapse: collapse; margin: 16px 0; }}
-  th, td {{ border: 1px solid var(--border); padding: 8px 12px; text-align: left; }}
-  th {{ background: var(--surface-2); }}
-  .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin: 16px 0; }}
-  .card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }}
-  .card img {{ background: #10141a; display: block; margin: 0 auto; }}
-  .card .cap {{ color: var(--muted); font-size: 0.85rem; margin-top: 8px; text-align: center; }}
+  table {{ width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.88rem; }}
+  th, td {{ border-bottom: 1px solid var(--border); padding: 10px 12px; text-align: left; }}
+  th {{ color: var(--muted); font-size: 0.76rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; background: var(--surface); }}
+
+  .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin: 16px 0; }}
+  .card {{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+  }}
+  .card img {{ background: #101216; display: block; margin: 0 auto; border-radius: 8px; border: none; }}
+  .card .cap {{ color: var(--muted); font-size: 0.82rem; margin-top: 10px; text-align: center; font-weight: 500; }}
+
   .btn {{
-    display: inline-block; background: #238636; color: #fff !important; text-decoration: none;
-    padding: 8px 14px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; margin: 4px 6px 4px 0;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent); color: #ffffff !important; text-decoration: none !important;
+    padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; margin: 4px 6px 4px 0;
+    transition: filter 0.15s;
   }}
-  .btn.sec {{ background: var(--surface-2); border: 1px solid var(--border); color: var(--text) !important; }}
+  .btn:hover {{ filter: brightness(1.06); }}
+  .btn.sec {{
+    background: var(--surface); border: 1px solid var(--border); color: var(--text) !important; font-weight: 500;
+  }}
+  .btn.sec:hover {{ border-color: var(--border-strong); background: var(--surface-2); }}
+
   .alert-banner {{
-    background: rgba(248, 81, 73, 0.14);
-    border: 2px solid #f85149;
+    background: rgba(239, 68, 68, 0.09);
+    border: 1px solid rgba(239, 68, 68, 0.42);
+    border-left: 4px solid #ef4444;
     border-radius: 10px;
-    padding: 14px 18px;
+    padding: 13px 16px;
     margin-bottom: 22px;
-    color: #ffdcd7;
+    font-size: 0.88rem;
   }}
-  .alert-banner strong {{ color: #ff7b72; }}
-  .alert-banner a {{ color: #ff9a93; font-weight: 600; }}
-  .svg-box {{ background: #fff; border-radius: 8px; padding: 10px; margin-bottom: 18px; border: 1px solid var(--border); }}
+  .alert-banner strong {{ color: #ef4444; }}
+  .alert-banner a {{ color: #ef4444; text-decoration: underline; font-weight: 600; }}
+
+  .svg-box {{
+    background: #ffffff; border-radius: 10px; padding: 12px; margin-bottom: 20px; border: 1px solid var(--border);
+  }}
   .svg-box img {{ border: none; }}
-  @media (max-width: 820px) {{
-    body {{ flex-direction: column; }}
-    nav {{ width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }}
-    main {{ padding: 20px; }}
+
+  /* Fullbleed embedded iBOM bar */
+  .ibom-bar {{
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--surface);
+    font-size: 0.86rem; flex-shrink: 0;
+  }}
+  .ibom-frame {{ flex: 1; width: 100%; border: none; display: block; background: #111; }}
+
+  @media (max-width: 900px) {{
+    .menu-btn {{ display: inline-flex; }}
+    aside.sidebar {{
+      position: fixed; left: -270px; top: 56px; z-index: 50; width: 260px;
+      height: calc(100vh - 56px); transition: left 0.2s ease; box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+    }}
+    aside.sidebar.open {{ left: 0; }}
+    main.layout-prose, main.layout-wide {{ padding: 20px 18px 40px; }}
   }}
 </style>
 </head>
 <body>
-  <nav>
-    <div class="brand">{html.escape(site_title)}</div>
-    <div class="ver">{html.escape(version)}</div>
-    <div class="nav-sec">Documentation</div>
-    {manual_links}
-    <div class="nav-sec">Hardware Artifacts</div>
-    {auto_links}
-  </nav>
-  <main>
-    {content_html}
-  </main>
+  <header class="topbar">
+    <div class="topbar-left">
+      <button type="button" class="menu-btn" id="menuToggle" aria-label="Toggle navigation">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <a class="brand-link" href="index.html">
+        <span class="brand-dot"></span>
+        <span>{html.escape(site_title)}</span>
+      </a>
+      <span class="ver-pill">{html.escape(version)}</span>
+    </div>
+    <div class="topbar-right">
+      {ext_link_html}
+      <button type="button" class="theme-btn" id="themeToggle" aria-label="Toggle light/dark theme" title="Switch theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="nav-group-title">Documentation</div>
+      {manual_links}
+      <div class="nav-group-title">Hardware</div>
+      {auto_links}
+    </aside>
+    <main class="{main_cls}">
+      {content_html}
+    </main>
+  </div>
+
+<script>
+  document.getElementById("themeToggle").addEventListener("click", () => {{
+    const cur = document.documentElement.getAttribute("data-theme") || "dark";
+    const nxt = cur === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", nxt);
+    localStorage.setItem("espin-theme", nxt);
+  }});
+  document.getElementById("menuToggle").addEventListener("click", () => {{
+    document.getElementById("sidebar").classList.toggle("open");
+  }});
+</script>
 </body>
 </html>
 """
@@ -338,6 +503,7 @@ def build_site(
     docs_assets: Dict[str, Any],
     version: str,
     ibom_path: Optional[Path] = None,
+    bom_json_path: Optional[Path] = None,
     bom_html_path: Optional[Path] = None,
     checks_md_path: Optional[Path] = None,
     checks_json_path: Optional[Path] = None,
@@ -361,7 +527,7 @@ def build_site(
         if src.is_dir():
             shutil.copytree(src, site_dir / sub, dirs_exist_ok=True)
 
-    # Copy generated renders & schematic SVGs into site
+    # Copy generated renders & schematic SVGs
     copied_3d: List[Tuple[str, str]] = []
     for name, p in docs_assets.get("rendered_3d", []):
         if p and p.is_file():
@@ -392,16 +558,17 @@ def build_site(
             size_kb = max(1, src.stat().st_size // 1024)
             dl_entries.append((label, f"files/{src.name}", f"{size_kb:,} KB"))
 
-    # Copy iBOM and Priced BOM HTML
+    # Copy raw iBOM for iframe embedding + fullscreen access
     has_ibom = False
     if ibom_path and ibom_path.is_file():
-        shutil.copy2(ibom_path, site_dir / "ibom.html")
+        shutil.copy2(ibom_path, site_dir / "ibom-raw.html")
         has_ibom = True
 
-    has_bom_calc = False
-    if bom_html_path and bom_html_path.is_file():
-        shutil.copy2(bom_html_path, site_dir / "bom.html")
-        has_bom_calc = True
+    # Load priced BOM JSON for native integration inside docs shell
+    bom_payload = None
+    if bom_json_path and bom_json_path.is_file():
+        bom_payload = json.loads(bom_json_path.read_text(encoding="utf-8"))
+    has_bom_calc = bom_payload is not None or (bom_html_path is not None and bom_html_path.is_file())
 
     manual_pages = _discover_manual_pages(manual_dir)
     if not any(p["slug"] == "index" for p in manual_pages):
@@ -416,7 +583,7 @@ def build_site(
             },
         )
 
-    # Build a prominent error banner if ERC or DRC errors > 0
+    # Prominent error banner if ERC or DRC errors > 0
     error_banner_html = ""
     checks_nav_label = "ERC & DRC Reports"
     if checks_json_path and checks_json_path.is_file():
@@ -424,10 +591,10 @@ def build_site(
         erc_e = int(chk_data.get("erc", {}).get("errors", 0))
         drc_e = int(chk_data.get("drc", {}).get("errors", 0))
         if erc_e > 0 or drc_e > 0:
-            checks_nav_label = f"🚨 ERC & DRC ({erc_e + drc_e} err)"
+            checks_nav_label = f"ERC & DRC ({erc_e + drc_e} err)"
             error_banner_html = (
                 '<div class="alert-banner">'
-                f"<strong>🚨 CAUTION — {erc_e + drc_e} KiCad ERROR(S) DETECTED "
+                f"<strong>CAUTION — {erc_e + drc_e} KiCad ERROR(S) DETECTED "
                 f"({erc_e} ERC, {drc_e} DRC)</strong><br>"
                 'This build completed without blocking. Review the <a href="checks.html">ERC &amp; DRC Report</a> '
                 "before manufacturing or ordering PCBs."
@@ -443,38 +610,65 @@ def build_site(
     if has_ibom:
         auto_nav.append(("Interactive BOM (iBOM)", "ibom.html"))
     auto_nav.append((checks_nav_label, "checks.html"))
-    auto_nav.append(("Manufacturing Downloads", "downloads.html"))
+    auto_nav.append(("Downloads", "downloads.html"))
 
     md_conv = markdown.Markdown(extensions=["tables", "fenced_code", "toc"])
 
-    # 1. Render all manual Markdown pages
+    # 1. Manual Markdown pages
     for page in manual_pages:
         md_conv.reset()
         body_html = md_conv.convert(page["body_md"])
-        # On the index page, show error banner (if any) + quick hero preview
         if page["slug"] == "index":
             body_html = error_banner_html + body_html
-        if page["slug"] == "index" and copied_3d:
-            hero = ['<h2>Board Preview</h2><div class="grid">']
-            for name, rel in copied_3d[:2]:
-                hero.append(
-                    f'<div class="card"><img src="{rel}" alt="{html.escape(name)}">'
-                    f'<div class="cap">{html.escape(name.title())}</div></div>'
-                )
-            hero.append("</div><p>")
-            if has_bom_calc:
-                hero.append('<a class="btn" href="bom.html">Open Priced BOM Calculator</a>')
-            if has_ibom:
-                hero.append('<a class="btn sec" href="ibom.html">Open Interactive BOM (iBOM)</a>')
-            hero.append('<a class="btn sec" href="downloads.html">Download JLCPCB Files</a></p>')
-            body_html += "\n".join(hero)
+            if copied_3d:
+                hero = ['<h2>Board Preview</h2><div class="grid">']
+                for name, rel in copied_3d[:2]:
+                    hero.append(
+                        f'<div class="card"><img src="{rel}" alt="{html.escape(name)}">'
+                        f'<div class="cap">{html.escape(name.title())}</div></div>'
+                    )
+                hero.append("</div><p>")
+                if has_bom_calc:
+                    hero.append('<a class="btn" href="bom.html">Priced BOM &amp; Stock</a>')
+                if has_ibom:
+                    hero.append('<a class="btn sec" href="ibom.html">Interactive BOM (iBOM)</a>')
+                hero.append('<a class="btn sec" href="downloads.html">Manufacturing Downloads</a></p>')
+                body_html += "\n".join(hero)
 
         out_html = _site_shell(
-            site_title, version, page["title"], page["href"], manual_pages, auto_nav, body_html
+            cfg, site_title, version, page["title"], page["href"], manual_pages, auto_nav, body_html, "prose"
         )
         (site_dir / page["href"]).write_text(out_html, encoding="utf-8")
 
-    # 2. Renders & 3D page
+    # 2. Integrated Priced BOM page (native inside docs shell!)
+    if bom_payload is not None:
+        bom_inner = error_banner_html + render_bom_fragment(bom_payload)
+        (site_dir / "bom.html").write_text(
+            _site_shell(
+                cfg, site_title, version, "Priced BOM & Stock", "bom.html", manual_pages, auto_nav, bom_inner, "wide"
+            ),
+            encoding="utf-8",
+        )
+    elif bom_html_path and bom_html_path.is_file():
+        shutil.copy2(bom_html_path, site_dir / "bom.html")
+
+    # 3. Integrated Interactive BOM page (with sidebar + full-height iframe + fullscreen button)
+    if has_ibom:
+        ibom_shell_body = """
+        <div class="ibom-bar">
+          <div><strong>Interactive HTML BOM</strong> <span style="color:var(--muted);margin-left:8px">Click components to highlight pads &amp; assembly locations</span></div>
+          <a class="btn sec" style="margin:0;padding:5px 11px;font-size:0.8rem" href="ibom-raw.html" target="_blank" rel="noopener noreferrer">Open Fullscreen ↗</a>
+        </div>
+        <iframe class="ibom-frame" src="ibom-raw.html" title="Interactive HTML BOM"></iframe>
+        """
+        (site_dir / "ibom.html").write_text(
+            _site_shell(
+                cfg, site_title, version, "Interactive BOM (iBOM)", "ibom.html", manual_pages, auto_nav, ibom_shell_body, "fullbleed"
+            ),
+            encoding="utf-8",
+        )
+
+    # 4. Renders & 3D page
     r_html = ["<h1>PCB Renders &amp; 3D Model</h1>"]
     step_dl = next((href for lbl, href, _ in dl_entries if "STEP" in lbl), None)
     if step_dl:
@@ -496,34 +690,44 @@ def build_site(
             )
         r_html.append("</div>")
     (site_dir / "renders.html").write_text(
-        _site_shell(site_title, version, "PCB Renders & 3D", "renders.html", manual_pages, auto_nav, "\n".join(r_html)),
+        _site_shell(
+            cfg, site_title, version, "PCB Renders & 3D", "renders.html", manual_pages, auto_nav, "\n".join(r_html), "wide"
+        ),
         encoding="utf-8",
     )
 
-    # 3. Schematic page
+    # 5. Schematic page
     s_html = ["<h1>Schematic</h1>"]
     pdf_dl = next((href for lbl, href, _ in dl_entries if "Schematic PDF" in lbl), None)
     if pdf_dl:
-        s_html.append(f'<p><a class="btn" href="{pdf_dl}">Download Schematic PDF</a></p>')
+        s_html.append(f'<p><a class="btn" href="{pdf_dl}" target="_blank" rel="noopener noreferrer">Open Schematic PDF ↗</a></p>')
     for title, rel in copied_sch_svgs:
-        s_html.append(f'<h3>{html.escape(title)}</h3><div class="svg-box"><img src="{rel}" alt="{html.escape(title)}"></div>')
+        s_html.append(
+            f'<h3>{html.escape(title)}</h3><div class="svg-box"><img src="{rel}" alt="{html.escape(title)}"></div>'
+        )
     (site_dir / "schematic.html").write_text(
-        _site_shell(site_title, version, "Schematic", "schematic.html", manual_pages, auto_nav, "\n".join(s_html)),
+        _site_shell(
+            cfg, site_title, version, "Schematic", "schematic.html", manual_pages, auto_nav, "\n".join(s_html), "wide"
+        ),
         encoding="utf-8",
     )
 
-    # 4. Checks page
+    # 6. Checks page
     if checks_md_path and checks_md_path.is_file():
         md_conv.reset()
         checks_html = error_banner_html + md_conv.convert(checks_md_path.read_text(encoding="utf-8"))
     else:
-        checks_html = error_banner_html + "<h1>ERC &amp; DRC Reports</h1><p>No check report was attached to this build.</p>"
+        checks_html = (
+            error_banner_html + "<h1>ERC &amp; DRC Reports</h1><p>No check report was attached to this build.</p>"
+        )
     (site_dir / "checks.html").write_text(
-        _site_shell(site_title, version, "ERC & DRC Reports", "checks.html", manual_pages, auto_nav, checks_html),
+        _site_shell(
+            cfg, site_title, version, "ERC & DRC Reports", "checks.html", manual_pages, auto_nav, checks_html, "prose"
+        ),
         encoding="utf-8",
     )
 
-    # 5. Downloads page
+    # 7. Downloads page
     d_html = [
         error_banner_html,
         "<h1>Manufacturing &amp; Design Downloads</h1>",
@@ -532,17 +736,18 @@ def build_site(
     for label, href, size in dl_entries:
         d_html.append(
             f'<tr><td>{html.escape(label)}</td><td>{size}</td>'
-            f'<td><a class="btn sec" href="{href}">Download</a></td></tr>'
+            f'<td><a class="btn sec" style="margin:0;padding:5px 12px" href="{href}">Download</a></td></tr>'
         )
     d_html.append("</tbody></table>")
     (site_dir / "downloads.html").write_text(
-        _site_shell(site_title, version, "Downloads", "downloads.html", manual_pages, auto_nav, "\n".join(d_html)),
+        _site_shell(
+            cfg, site_title, version, "Downloads", "downloads.html", manual_pages, auto_nav, "\n".join(d_html), "prose"
+        ),
         encoding="utf-8",
     )
 
-    # Prevent GitHub Pages Jekyll processing
     (site_dir / ".nojekyll").write_text("", encoding="utf-8")
-    print(f"[DOCS] Built static site at {site_dir} ({len(manual_pages)} manual page(s)).")
+    print(f"[DOCS] Built Mintlify-styled site at {site_dir} ({len(manual_pages)} manual page(s)).")
 
 
 def main() -> int:
@@ -552,7 +757,8 @@ def main() -> int:
     ap.add_argument("--config", default=None, help="Path to ci/config.yml")
     ap.add_argument("--jlcpcb-dir", default=None, help="Directory with JLCPCB outputs")
     ap.add_argument("--ibom", default=None, help="Path to generated ibom.html")
-    ap.add_argument("--bom-html", default=None, help="Path to generated priced bom.html")
+    ap.add_argument("--bom-json", default=None, help="Path to bom-priced.json for native docs BOM page")
+    ap.add_argument("--bom-html", default=None, help="Fallback standalone bom.html")
     ap.add_argument("--bom-csv", default=None, help="Path to generated bom-priced.csv")
     ap.add_argument("--checks-md", default=None, help="Path to checks-summary.md")
     ap.add_argument("--checks-json", default=None, help="Path to checks-summary.json")
@@ -590,6 +796,7 @@ def main() -> int:
         docs_assets=docs_assets,
         version=args.version,
         ibom_path=Path(args.ibom) if args.ibom else None,
+        bom_json_path=Path(args.bom_json) if args.bom_json else None,
         bom_html_path=Path(args.bom_html) if args.bom_html else None,
         checks_md_path=Path(args.checks_md) if args.checks_md else None,
         checks_json_path=Path(args.checks_json) if args.checks_json else None,
