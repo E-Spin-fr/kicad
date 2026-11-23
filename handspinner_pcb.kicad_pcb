@@ -5095,6 +5095,19 @@
 				)
 			)
 		)
+		(property "LCSC Part #" "C25981"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "7c9b990e-c2ae-4da8-8387-ce45b0e9e7b2")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(property ki_fp_filters "R_*")
 		(path "/1dc95e15-c197-46db-91eb-1d522c456c0c")
 		(sheetname "/")
@@ -5649,6 +5662,19 @@
 			(layer "F.SilkS")
 			(hide yes)
 			(uuid "9b141572-5689-4820-8710-24a8ca2a1361")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
+		(property "LCSC Part #" "C25900"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "ffc44f88-9acb-4263-8f5e-3de4985760f9")
 			(effects
 				(font
 					(size 1 1)
@@ -6624,25 +6650,12 @@
 				)
 			)
 		)
-		(property "LCSC Part #" "C2286"
+		(property "LCSC Part #" "C12624"
 			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
 			(uuid "0838b4a5-ffaa-40fe-be59-079179a9f186")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "JLCPCB Part #" "C2286"
-			(at 0 0 270)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "94ac9ab5-d9ab-4be9-a60f-ace0daa860bc")
 			(effects
 				(font
 					(size 1 1)
@@ -6888,6 +6901,19 @@
 				)
 			)
 		)
+		(property "LCSC Part #" "C25900"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "bd8b05b8-0b0e-4c6f-8fb5-dfe49c11d45c")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(property ki_fp_filters "R_*")
 		(path "/4a78dcee-858b-4890-a7b8-d4c34b2c4fa1")
 		(sheetname "/")
@@ -7041,6 +7067,19 @@
 			(layer "F.SilkS")
 			(hide yes)
 			(uuid "b26738fa-71ad-420b-b42a-7e42e96af665")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
+		(property "LCSC Part #" "C25804"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "36d68353-ba3a-4331-a1bf-497459f55a7a")
 			(effects
 				(font
 					(size 1 1)
@@ -9180,6 +9219,19 @@
 			(layer "F.SilkS")
 			(hide yes)
 			(uuid "a0498fe1-e690-4343-80df-93a298e10671")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
+		(property "LCSC Part #" "C19666"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "14827d80-4b84-4707-8150-67a33e211fd6")
 			(effects
 				(font
 					(size 1 1)
@@ -11453,6 +11505,19 @@
 				)
 			)
 		)
+		(property "LCSC Part #" "C7433483"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "84d1a5ae-c0b5-4fe2-b848-0fdd6e6e7746")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
 		(path "/6f2a1d21-9e21-425f-b67d-5c58d6e7594c")
 		(sheetname "/")
 		(sheetfile "handspinner_pcb.kicad_sch")
@@ -11857,6 +11922,19 @@
 			(layer "F.SilkS")
 			(hide yes)
 			(uuid "f06ed65e-3610-476c-97ff-6132741a907f")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
+		(property "LCSC Part #" "C15849"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "440987ea-3242-464e-a0f8-b275296a0599")
 			(effects
 				(font
 					(size 1 1)
@@ -12721,6 +12799,19 @@
 			(layer "F.SilkS")
 			(hide yes)
 			(uuid "de29ec64-a939-43fa-aea9-fef1f4c6daf0")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
+		(property "LCSC Part #" "C19702"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "F.Fab")
+			(hide yes)
+			(uuid "3d9ca4aa-89e2-40b3-9fdb-e80a8fbd437a")
 			(effects
 				(font
 					(size 1 1)
@@ -14664,6 +14755,20 @@
 				(justify mirror)
 			)
 		)
+		(property "LCSC Part #" "C14663"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "B.Fab")
+			(hide yes)
+			(uuid "99503b94-5c08-4ccb-a268-8649a9b5ea8e")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+				(justify mirror)
+			)
+		)
 		(property ki_fp_filters "C_*")
 		(path "/972f1b9e-cb39-4ff9-974b-467de222ff07")
 		(sheetname "/")
@@ -15450,6 +15555,20 @@
 				(justify mirror)
 			)
 		)
+		(property "LCSC Part #" "C14663"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "B.Fab")
+			(hide yes)
+			(uuid "e558da42-7533-4416-89cd-9093f9b20032")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+				(justify mirror)
+			)
+		)
 		(property ki_fp_filters "C_*")
 		(path "/29937e41-8b7c-484f-9475-82dc3665a44f")
 		(sheetname "/")
@@ -15608,6 +15727,20 @@
 			(layer "B.SilkS")
 			(hide yes)
 			(uuid "f24a17f9-8b82-4d88-9deb-78fd40310c2b")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+				(justify mirror)
+			)
+		)
+		(property "LCSC Part #" "C14663"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "B.Fab")
+			(hide yes)
+			(uuid "4ef967b9-67ea-42b0-9f4b-ebe085bbcb20")
 			(effects
 				(font
 					(size 1 1)
@@ -16084,6 +16217,20 @@
 			(layer "B.SilkS")
 			(hide yes)
 			(uuid "f410ead5-b9c5-4735-85f3-2bc20ef34174")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+				(justify mirror)
+			)
+		)
+		(property "LCSC Part #" "C14663"
+			(at 0 0 0)
+			(unlocked yes)
+			(layer "B.Fab")
+			(hide yes)
+			(uuid "d6c04562-ed4d-4e84-a661-4403cc49427b")
 			(effects
 				(font
 					(size 1 1)
