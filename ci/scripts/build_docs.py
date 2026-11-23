@@ -2,6 +2,12 @@
 """Generate KiCad 10 documentation assets (Schematic PDF/SVG, 2D SVG, 3D PNG, STEP)
 and compile a Mintlify-inspired static GitHub Pages site combining manual docs (`docs/*.md`)
 with natively integrated hardware views (Priced BOM, Interactive BOM, Renders, Schematic, Reports, Downloads).
+
+Supports two modes:
+1. Full build (default): runs kicad-cli exports in parallel and builds the complete site + `_meta/`.
+2. Fast docs-only rebuild (`--reuse-site <dir>`): skips KiCad completely, reuses existing hardware
+   artifacts (`renders/`, `files/`, `part-images/`, `ibom-raw.html`, `_meta/`), and recompiles
+   all manual Markdown docs + HTML shell in seconds.
 """
 
 from __future__ import annotations
@@ -14,6 +20,7 @@ import shutil
 import subprocess
 import sys
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -33,10 +40,47 @@ def _run(cmd: List[str], check: bool = True) -> subprocess.CompletedProcess:
     return res
 
 
+def _render_single_3d(
+    pcb_path: Path, renders_dir: Path, view: Dict[str, Any], w: str, h: str, quality: str
+) -> Tuple[str, Optional[Path]]:
+    vname = view["name"]
+    out_png = renders_dir / f"pcb-3d-{vname}.png"
+    cmd = [
+        "kicad-cli",
+        "pcb",
+        "render",
+        "--side",
+        view.get("side", "top"),
+        "--width",
+        w,
+        "--height",
+        h,
+        "--background",
+        "transparent",
+        "--quality",
+        quality,
+        "--perspective",
+        "--output",
+        str(out_png),
+    ]
+    if view.get("rotate"):
+        cmd.extend(["--rotate", str(view["rotate"])])
+    cmd.append(str(pcb_path))
+    res = _run(cmd, check=False)
+    if res.returncode != 0 or not out_png.is_file():
+        print(f"::warning title=3D Render Fallback ({vname})::Quality '{quality}' failed; retrying with 'basic'.")
+        cmd[cmd.index(quality)] = "basic"
+        res2 = _run(cmd, check=False)
+        if res2.returncode != 0 or not out_png.is_file():
+            print(f"::warning title=3D Render Failed ({vname})::Could not render 3D view '{vname}'.")
+            return vname, None
+    return vname, out_png
+
+
 def export_kicad_docs(
     cfg: Dict[str, Any], out_dir: Path, prefix: str, skip_3d: bool = False
 ) -> Dict[str, Any]:
-    """Export schematic PDF/SVG, 2D PCB SVGs, 3D raytraced renders, and STEP model."""
+    """Export schematic PDF/SVG, 2D PCB SVGs, 3D raytraced renders, and STEP model (in parallel)."""
     sch_path = resolve_project_path(cfg, "schematic")
     pcb_path = resolve_project_path(cfg, "pcb")
 
@@ -46,107 +90,72 @@ def export_kicad_docs(
     for d in (assets_dir, sch_svg_dir, renders_dir):
         d.mkdir(parents=True, exist_ok=True)
 
-    # 1. Schematic PDF + SVGs
+    # 1. Fast 2D exports (Schematic PDF + SVGs, 2D PCB SVGs)
     sch_pdf = out_dir / f"{prefix}-schematic.pdf"
-    _run(["kicad-cli", "sch", "export", "pdf", "--output", str(sch_pdf), str(sch_path)])
-    _run(["kicad-cli", "sch", "export", "svg", "--output", str(sch_svg_dir), str(sch_path)])
-
-    # 2. 2D PCB SVGs (Top & Bottom)
     top_svg = renders_dir / "pcb-2d-top.svg"
     bot_svg = renders_dir / "pcb-2d-bottom.svg"
-    _run(
-        [
-            "kicad-cli",
-            "pcb",
-            "export",
-            "svg",
-            "--layers",
-            "F.Cu,F.Silkscreen,F.Mask,Edge.Cuts",
-            "--mode-single",
-            "--exclude-drawing-sheet",
-            "--page-size-mode",
-            "2",
-            "--check-zones",
-            "--output",
-            str(top_svg),
-            str(pcb_path),
-        ]
-    )
-    _run(
-        [
-            "kicad-cli",
-            "pcb",
-            "export",
-            "svg",
-            "--layers",
-            "B.Cu,B.Silkscreen,B.Mask,Edge.Cuts",
-            "--mirror",
-            "--mode-single",
-            "--exclude-drawing-sheet",
-            "--page-size-mode",
-            "2",
-            "--check-zones",
-            "--output",
-            str(bot_svg),
-            str(pcb_path),
-        ]
-    )
 
-    # 3. 3D Raytraced PNG renders + STEP model
+    fast_cmds = [
+        ["kicad-cli", "sch", "export", "pdf", "--output", str(sch_pdf), str(sch_path)],
+        ["kicad-cli", "sch", "export", "svg", "--output", str(sch_svg_dir), str(sch_path)],
+        [
+            "kicad-cli", "pcb", "export", "svg",
+            "--layers", "F.Cu,F.Silkscreen,F.Mask,Edge.Cuts",
+            "--mode-single", "--exclude-drawing-sheet", "--page-size-mode", "2", "--check-zones",
+            "--output", str(top_svg), str(pcb_path),
+        ],
+        [
+            "kicad-cli", "pcb", "export", "svg",
+            "--layers", "B.Cu,B.Silkscreen,B.Mask,Edge.Cuts",
+            "--mirror", "--mode-single", "--exclude-drawing-sheet", "--page-size-mode", "2", "--check-zones",
+            "--output", str(bot_svg), str(pcb_path),
+        ],
+    ]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futs = [pool.submit(_run, cmd, True) for cmd in fast_cmds]
+        for fut in as_completed(futs):
+            fut.result()
+
+    # 2. Heavy 3D renders + STEP export concurrently
     r_cfg = cfg.get("renders", {})
     w = str(r_cfg.get("width", 1600))
     h = str(r_cfg.get("height", 1200))
     quality = str(r_cfg.get("quality", "raytrace_post"))
-    rendered_3d: List[Tuple[str, Path]] = []
-
+    views = r_cfg.get("views", [{"name": "top", "side": "top", "rotate": ""}])
+    rendered_map: Dict[str, Path] = {}
     step_file = out_dir / f"{prefix}-3d.step"
-    if not skip_3d:
-        for view in r_cfg.get("views", [{"name": "top", "side": "top", "rotate": ""}]):
-            vname = view["name"]
-            out_png = renders_dir / f"pcb-3d-{vname}.png"
-            cmd = [
-                "kicad-cli",
-                "pcb",
-                "render",
-                "--side",
-                view.get("side", "top"),
-                "--width",
-                w,
-                "--height",
-                h,
-                "--background",
-                "transparent",
-                "--quality",
-                quality,
-                "--perspective",
-                "--output",
-                str(out_png),
-            ]
-            if view.get("rotate"):
-                cmd.extend(["--rotate", str(view["rotate"])])
-            cmd.append(str(pcb_path))
-            res = _run(cmd, check=False)
-            if res.returncode != 0 or not out_png.is_file():
-                cmd[cmd.index(quality)] = "basic"
-                _run(cmd, check=False)
-            if out_png.is_file():
-                rendered_3d.append((vname, out_png))
 
-        _run(
-            [
-                "kicad-cli",
-                "pcb",
-                "export",
-                "step",
-                "--force",
-                "--subst-models",
-                "--no-dnp",
-                "--output",
-                str(step_file),
-                str(pcb_path),
-            ],
-            check=False,
-        )
+    if not skip_3d:
+        def _export_step() -> Optional[Path]:
+            res = _run(
+                [
+                    "kicad-cli", "pcb", "export", "step",
+                    "--force", "--subst-models", "--no-dnp",
+                    "--output", str(step_file), str(pcb_path),
+                ],
+                check=False,
+            )
+            if res.returncode != 0 or not step_file.is_file():
+                print("::warning title=STEP Export Failed::kicad-cli pcb export step did not produce a STEP file.")
+                return None
+            return step_file
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            step_fut = pool.submit(_export_step)
+            render_futs = [
+                pool.submit(_render_single_3d, pcb_path, renders_dir, v, w, h, quality)
+                for v in views
+            ]
+            for fut in as_completed(render_futs):
+                vname, path = fut.result()
+                if path:
+                    rendered_map[vname] = path
+            step_fut.result()
+
+    # Preserve configured view order
+    rendered_3d: List[Tuple[str, Path]] = [
+        (v["name"], rendered_map[v["name"]]) for v in views if v["name"] in rendered_map
+    ]
 
     renders_zip = out_dir / f"{prefix}-renders.zip"
     with zipfile.ZipFile(renders_zip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
@@ -226,6 +235,9 @@ def _site_shell(
     cfg: Dict[str, Any],
     site_title: str,
     version: str,
+    version_id: str,
+    commit_sha: str,
+    root_rel: str,
     page_title: str,
     active_href: str,
     manual_nav: List[Dict[str, Any]],
@@ -255,6 +267,8 @@ def _site_shell(
     )
 
     main_cls = f"layout-{layout_mode}"
+    sha_badge = f" · {commit_sha[:7]}" if commit_sha else ""
+    ver_label = f"{version}{sha_badge}"
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -303,7 +317,6 @@ def _site_shell(
   * {{ box-sizing: border-box; }}
   html, body {{ margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.65; -webkit-font-smoothing: antialiased; }}
 
-  /* Mintlify-style sticky topbar */
   .topbar {{
     position: sticky; top: 0; z-index: 40; height: 56px;
     background: var(--bg-translucent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
@@ -319,21 +332,31 @@ def _site_shell(
   .brand-link {{
     display: inline-flex; align-items: center; gap: 9px;
     font-weight: 650; font-size: 0.98rem; letter-spacing: -0.015em;
-    color: var(--text); text-decoration: none;
+    color: var(--text); text-decoration: none; white-space: nowrap;
   }}
   .brand-dot {{
     width: 9px; height: 9px; border-radius: 50%; background: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-soft);
   }}
-  .ver-pill {{
-    font-family: var(--mono); font-size: 0.72rem; font-weight: 500;
-    padding: 2px 8px; border-radius: 999px;
-    background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
+  .ver-select-wrap {{ position: relative; display: inline-flex; align-items: center; }}
+  .ver-select {{
+    appearance: none; -webkit-appearance: none;
+    font-family: var(--mono); font-size: 0.74rem; font-weight: 500;
+    padding: 4px 24px 4px 10px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text-secondary);
+    cursor: pointer; max-width: 210px;
   }}
+  .ver-select:hover {{ border-color: var(--border-strong); color: var(--text); }}
+  .ver-select:focus {{ outline: none; border-color: var(--accent); }}
+  .ver-caret {{
+    position: absolute; right: 8px; pointer-events: none; color: var(--muted);
+    display: inline-flex; align-items: center;
+  }}
+
   .topbar-right {{ display: flex; align-items: center; gap: 10px; }}
   .top-link {{
     font-size: 0.84rem; font-weight: 500; color: var(--muted); text-decoration: none;
-    padding: 5px 10px; border-radius: 7px; transition: color 0.15s, background 0.15s;
+    padding: 5px 10px; border-radius: 7px; transition: color 0.15s, background 0.15s; white-space: nowrap;
   }}
   .top-link:hover {{ color: var(--text); background: var(--hover); }}
   .theme-btn {{
@@ -344,7 +367,6 @@ def _site_shell(
   }}
   .theme-btn:hover {{ color: var(--text); border-color: var(--border-strong); }}
 
-  /* Shell layout */
   .shell {{ display: flex; min-height: calc(100vh - 56px); }}
   aside.sidebar {{
     width: 256px; flex-shrink: 0;
@@ -373,7 +395,6 @@ def _site_shell(
   main.layout-wide {{ padding: 28px 36px 48px; max-width: 1320px; }}
   main.layout-fullbleed {{ padding: 0; display: flex; flex-direction: column; height: calc(100vh - 56px); }}
 
-  /* Clean typography */
   h1 {{ font-size: 1.85rem; font-weight: 650; letter-spacing: -0.025em; margin: 0 0 16px; line-height: 1.25; }}
   h2 {{ font-size: 1.3rem; font-weight: 600; letter-spacing: -0.015em; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }}
   h3 {{ font-size: 1.05rem; font-weight: 600; margin: 22px 0 8px; }}
@@ -430,7 +451,6 @@ def _site_shell(
   }}
   .svg-box img {{ border: none; }}
 
-  /* Fullbleed embedded iBOM bar */
   .ibom-bar {{
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--surface);
@@ -459,7 +479,14 @@ def _site_shell(
         <span class="brand-dot"></span>
         <span>{html.escape(site_title)}</span>
       </a>
-      <span class="ver-pill">{html.escape(version)}</span>
+      <div class="ver-select-wrap">
+        <select id="versionSwitcher" class="ver-select" aria-label="Select version or branch" data-current="{html.escape(version_id)}" data-root-rel="{html.escape(root_rel)}" data-page="{html.escape(active_href)}">
+          <option value="{html.escape(version_id)}">{html.escape(ver_label)}</option>
+        </select>
+        <span class="ver-caret">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
+      </div>
     </div>
     <div class="topbar-right">
       {ext_link_html}
@@ -491,35 +518,90 @@ def _site_shell(
   document.getElementById("menuToggle").addEventListener("click", () => {{
     document.getElementById("sidebar").classList.toggle("open");
   }});
+
+  // Dynamic multi-version / branch switcher populated from root versions.json
+  (async function() {{
+    const sel = document.getElementById("versionSwitcher");
+    if (!sel) return;
+    const rootRel = sel.dataset.rootRel || "..";
+    const currentId = sel.dataset.current || "";
+    const pageName = sel.dataset.page || "index.html";
+    try {{
+      const resp = await fetch(rootRel + "/versions.json", {{ cache: "no-cache" }});
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const versions = data.versions || [];
+      if (!versions.length) return;
+
+      const releases = versions.filter(v => v.type === "latest" || v.type === "tag");
+      const branches = versions.filter(v => v.type === "branch");
+      const others = versions.filter(v => !["latest", "tag", "branch"].includes(v.type));
+
+      sel.innerHTML = "";
+      function addGroup(label, items) {{
+        if (!items.length) return;
+        const og = document.createElement("optgroup");
+        og.label = label;
+        for (const v of items) {{
+          const opt = document.createElement("option");
+          opt.value = v.id;
+          const sha = v.sha ? ` · ${{v.sha.slice(0, 7)}}` : "";
+          opt.textContent = `${{v.label}}${{sha}}`;
+          if (v.id === currentId) opt.selected = true;
+          og.appendChild(opt);
+        }}
+        sel.appendChild(og);
+      }}
+      addGroup("Releases", releases);
+      addGroup("Branches", branches);
+      addGroup("Other", others);
+
+      sel.addEventListener("change", () => {{
+        const target = sel.value;
+        if (target && target !== currentId) {{
+          window.location.href = `${{rootRel}}/${{target}}/${{pageName}}`;
+        }}
+      }});
+    }} catch (_e) {{
+      // Standalone/local preview without root versions.json
+    }}
+  }})();
 </script>
 </body>
 </html>
 """
 
 
+def _compute_root_rel(version_id: str) -> str:
+    """Compute relative path from `<pages_root>/<version_id>/` back to `<pages_root>`."""
+    clean = version_id.strip("/")
+    if not clean or clean == ".":
+        return "."
+    depth = len(clean.split("/"))
+    return "/".join([".."] * depth)
+
+
 def build_site(
     cfg: Dict[str, Any],
     site_dir: Path,
-    docs_assets: Dict[str, Any],
     version: str,
-    ibom_path: Optional[Path] = None,
-    bom_json_path: Optional[Path] = None,
-    bom_html_path: Optional[Path] = None,
-    checks_md_path: Optional[Path] = None,
-    checks_json_path: Optional[Path] = None,
-    download_files: Optional[List[Tuple[str, Path]]] = None,
+    version_id: str,
+    commit_sha: str,
+    copied_3d: List[Tuple[str, str]],
+    copied_2d: List[Tuple[str, str]],
+    copied_sch_svgs: List[Tuple[str, str]],
+    dl_entries: List[Tuple[str, str, str]],
+    has_ibom: bool,
+    bom_payload: Optional[Dict[str, Any]],
+    checks_md_text: Optional[str],
+    checks_json_data: Optional[Dict[str, Any]],
+    sanity_md_text: Optional[str],
 ) -> None:
+    """Render all HTML pages into `site_dir` (already populated with static files/renders/_meta)."""
     root = Path(cfg["_root"])
     manual_dir = root / cfg.get("docs", {}).get("manual_dir", "docs")
     site_title = cfg["project"].get("display_name", cfg["project"]["name"])
-
-    if site_dir.exists():
-        shutil.rmtree(site_dir)
-    site_dir.mkdir(parents=True, exist_ok=True)
-    files_dir = site_dir / "files"
-    files_dir.mkdir(parents=True, exist_ok=True)
-    img_dir = site_dir / "renders"
-    img_dir.mkdir(parents=True, exist_ok=True)
+    root_rel = _compute_root_rel(version_id)
 
     # Copy user-managed static assets from docs/assets or docs/images
     for sub in ("assets", "images", "img"):
@@ -527,49 +609,7 @@ def build_site(
         if src.is_dir():
             shutil.copytree(src, site_dir / sub, dirs_exist_ok=True)
 
-    # Copy generated renders & schematic SVGs
-    copied_3d: List[Tuple[str, str]] = []
-    for name, p in docs_assets.get("rendered_3d", []):
-        if p and p.is_file():
-            dst = img_dir / p.name
-            shutil.copy2(p, dst)
-            copied_3d.append((name, f"renders/{p.name}"))
-
-    copied_2d: List[Tuple[str, str]] = []
-    for label, key in (("2D Top View", "top_svg"), ("2D Bottom View", "bot_svg")):
-        p = docs_assets.get(key)
-        if p and p.is_file():
-            dst = img_dir / p.name
-            shutil.copy2(p, dst)
-            copied_2d.append((label, f"renders/{p.name}"))
-
-    copied_sch_svgs: List[Tuple[str, str]] = []
-    for svg in docs_assets.get("sch_svgs", []):
-        dst = img_dir / f"sch-{svg.name}"
-        shutil.copy2(svg, dst)
-        copied_sch_svgs.append((svg.stem, f"renders/{dst.name}"))
-
-    # Copy downloadable files
-    dl_entries: List[Tuple[str, str, str]] = []
-    for label, src in download_files or []:
-        if src and src.is_file():
-            dst = files_dir / src.name
-            shutil.copy2(src, dst)
-            size_kb = max(1, src.stat().st_size // 1024)
-            dl_entries.append((label, f"files/{src.name}", f"{size_kb:,} KB"))
-
-    # Copy raw iBOM for iframe embedding + fullscreen access
-    has_ibom = False
-    if ibom_path and ibom_path.is_file():
-        shutil.copy2(ibom_path, site_dir / "ibom-raw.html")
-        has_ibom = True
-
-    # Load priced BOM JSON for native integration inside docs shell
-    bom_payload = None
-    if bom_json_path and bom_json_path.is_file():
-        bom_payload = json.loads(bom_json_path.read_text(encoding="utf-8"))
-    has_bom_calc = bom_payload is not None or (bom_html_path is not None and bom_html_path.is_file())
-
+    has_bom_calc = bom_payload is not None
     manual_pages = _discover_manual_pages(manual_dir)
     if not any(p["slug"] == "index" for p in manual_pages):
         manual_pages.insert(
@@ -586,10 +626,9 @@ def build_site(
     # Prominent error banner if ERC or DRC errors > 0
     error_banner_html = ""
     checks_nav_label = "ERC & DRC Reports"
-    if checks_json_path and checks_json_path.is_file():
-        chk_data = json.loads(checks_json_path.read_text(encoding="utf-8"))
-        erc_e = int(chk_data.get("erc", {}).get("errors", 0))
-        drc_e = int(chk_data.get("drc", {}).get("errors", 0))
+    if checks_json_data:
+        erc_e = int(checks_json_data.get("erc", {}).get("errors", 0))
+        drc_e = int(checks_json_data.get("drc", {}).get("errors", 0))
         if erc_e > 0 or drc_e > 0:
             checks_nav_label = f"ERC & DRC ({erc_e + drc_e} err)"
             error_banner_html = (
@@ -636,23 +675,23 @@ def build_site(
                 body_html += "\n".join(hero)
 
         out_html = _site_shell(
-            cfg, site_title, version, page["title"], page["href"], manual_pages, auto_nav, body_html, "prose"
+            cfg, site_title, version, version_id, commit_sha, root_rel,
+            page["title"], page["href"], manual_pages, auto_nav, body_html, "prose",
         )
         (site_dir / page["href"]).write_text(out_html, encoding="utf-8")
 
-    # 2. Integrated Priced BOM page (native inside docs shell!)
+    # 2. Integrated Priced BOM page
     if bom_payload is not None:
         bom_inner = error_banner_html + render_bom_fragment(bom_payload)
         (site_dir / "bom.html").write_text(
             _site_shell(
-                cfg, site_title, version, "Priced BOM & Stock", "bom.html", manual_pages, auto_nav, bom_inner, "wide"
+                cfg, site_title, version, version_id, commit_sha, root_rel,
+                "Priced BOM & Stock", "bom.html", manual_pages, auto_nav, bom_inner, "wide",
             ),
             encoding="utf-8",
         )
-    elif bom_html_path and bom_html_path.is_file():
-        shutil.copy2(bom_html_path, site_dir / "bom.html")
 
-    # 3. Integrated Interactive BOM page (with sidebar + full-height iframe + fullscreen button)
+    # 3. Integrated Interactive BOM page
     if has_ibom:
         ibom_shell_body = """
         <div class="ibom-bar">
@@ -663,7 +702,8 @@ def build_site(
         """
         (site_dir / "ibom.html").write_text(
             _site_shell(
-                cfg, site_title, version, "Interactive BOM (iBOM)", "ibom.html", manual_pages, auto_nav, ibom_shell_body, "fullbleed"
+                cfg, site_title, version, version_id, commit_sha, root_rel,
+                "Interactive BOM (iBOM)", "ibom.html", manual_pages, auto_nav, ibom_shell_body, "fullbleed",
             ),
             encoding="utf-8",
         )
@@ -691,7 +731,8 @@ def build_site(
         r_html.append("</div>")
     (site_dir / "renders.html").write_text(
         _site_shell(
-            cfg, site_title, version, "PCB Renders & 3D", "renders.html", manual_pages, auto_nav, "\n".join(r_html), "wide"
+            cfg, site_title, version, version_id, commit_sha, root_rel,
+            "PCB Renders & 3D", "renders.html", manual_pages, auto_nav, "\n".join(r_html), "wide",
         ),
         encoding="utf-8",
     )
@@ -700,29 +741,38 @@ def build_site(
     s_html = ["<h1>Schematic</h1>"]
     pdf_dl = next((href for lbl, href, _ in dl_entries if "Schematic PDF" in lbl), None)
     if pdf_dl:
-        s_html.append(f'<p><a class="btn" href="{pdf_dl}" target="_blank" rel="noopener noreferrer">Open Schematic PDF ↗</a></p>')
+        s_html.append(
+            f'<p><a class="btn" href="{pdf_dl}" target="_blank" rel="noopener noreferrer">Open Schematic PDF ↗</a></p>'
+        )
     for title, rel in copied_sch_svgs:
         s_html.append(
             f'<h3>{html.escape(title)}</h3><div class="svg-box"><img src="{rel}" alt="{html.escape(title)}"></div>'
         )
     (site_dir / "schematic.html").write_text(
         _site_shell(
-            cfg, site_title, version, "Schematic", "schematic.html", manual_pages, auto_nav, "\n".join(s_html), "wide"
+            cfg, site_title, version, version_id, commit_sha, root_rel,
+            "Schematic", "schematic.html", manual_pages, auto_nav, "\n".join(s_html), "wide",
         ),
         encoding="utf-8",
     )
 
-    # 6. Checks page
-    if checks_md_path and checks_md_path.is_file():
+    # 6. Checks & Sanity page
+    combined_checks_md = ""
+    if checks_md_text:
+        combined_checks_md += checks_md_text + "\n\n"
+    if sanity_md_text:
+        combined_checks_md += "---\n\n" + sanity_md_text + "\n"
+    if combined_checks_md.strip():
         md_conv.reset()
-        checks_html = error_banner_html + md_conv.convert(checks_md_path.read_text(encoding="utf-8"))
+        checks_html = error_banner_html + md_conv.convert(combined_checks_md)
     else:
         checks_html = (
             error_banner_html + "<h1>ERC &amp; DRC Reports</h1><p>No check report was attached to this build.</p>"
         )
     (site_dir / "checks.html").write_text(
         _site_shell(
-            cfg, site_title, version, "ERC & DRC Reports", "checks.html", manual_pages, auto_nav, checks_html, "prose"
+            cfg, site_title, version, version_id, commit_sha, root_rel,
+            "ERC & DRC Reports", "checks.html", manual_pages, auto_nav, checks_html, "prose",
         ),
         encoding="utf-8",
     )
@@ -741,36 +791,128 @@ def build_site(
     d_html.append("</tbody></table>")
     (site_dir / "downloads.html").write_text(
         _site_shell(
-            cfg, site_title, version, "Downloads", "downloads.html", manual_pages, auto_nav, "\n".join(d_html), "prose"
+            cfg, site_title, version, version_id, commit_sha, root_rel,
+            "Downloads", "downloads.html", manual_pages, auto_nav, "\n".join(d_html), "prose",
         ),
         encoding="utf-8",
     )
 
     (site_dir / ".nojekyll").write_text("", encoding="utf-8")
-    print(f"[DOCS] Built Mintlify-styled site at {site_dir} ({len(manual_pages)} manual page(s)).")
+    print(f"[DOCS] Built Mintlify-styled site at {site_dir} (version_id={version_id}, {len(manual_pages)} manual page(s)).")
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Export KiCad docs and build static GitHub Pages site.")
     ap.add_argument("--out-dir", required=True, help="Output directory for generated docs & site")
-    ap.add_argument("--version", default="dev", help="Release tag or SHA")
+    ap.add_argument("--version", default="dev", help="Display version label (tag or branch)")
+    ap.add_argument("--version-id", default=".", help="Published Pages path id (e.g. main, v1.0.0, branches/foo)")
+    ap.add_argument("--commit-sha", default="", help="Git commit SHA")
     ap.add_argument("--config", default=None, help="Path to ci/config.yml")
     ap.add_argument("--jlcpcb-dir", default=None, help="Directory with JLCPCB outputs")
     ap.add_argument("--ibom", default=None, help="Path to generated ibom.html")
     ap.add_argument("--bom-json", default=None, help="Path to bom-priced.json for native docs BOM page")
-    ap.add_argument("--bom-html", default=None, help="Fallback standalone bom.html")
+    ap.add_argument("--part-images-dir", default=None, help="Directory with cached part thumbnails")
     ap.add_argument("--bom-csv", default=None, help="Path to generated bom-priced.csv")
     ap.add_argument("--checks-md", default=None, help="Path to checks-summary.md")
     ap.add_argument("--checks-json", default=None, help="Path to checks-summary.json")
+    ap.add_argument("--sanity-md", default=None, help="Path to sanity-summary.md")
+    ap.add_argument("--reuse-site", default=None, help="Fast docs-only mode: reuse hardware artifacts from an existing site dir")
     ap.add_argument("--skip-3d", action="store_true", help="Skip 3D renders and STEP export")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
     out_dir = Path(args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    prefix = f"{cfg['project']['name']}-{args.version}"
+    site_dir = out_dir / "site"
 
+    if args.reuse_site:
+        # Fast docs-only rebuild: NO KiCad needed!
+        reuse = Path(args.reuse_site).resolve()
+        if not reuse.is_dir():
+            raise FileNotFoundError(f"--reuse-site directory not found: {reuse}")
+        if site_dir.exists():
+            shutil.rmtree(site_dir)
+        site_dir.mkdir(parents=True, exist_ok=True)
+
+        for sub in ("files", "renders", "part-images", "_meta"):
+            src = reuse / sub
+            if src.is_dir():
+                shutil.copytree(src, site_dir / sub, dirs_exist_ok=True)
+        if (reuse / "ibom-raw.html").is_file():
+            shutil.copy2(reuse / "ibom-raw.html", site_dir / "ibom-raw.html")
+
+        meta_dir = site_dir / "_meta"
+        manifest = {}
+        if (meta_dir / "manifest.json").is_file():
+            manifest = json.loads((meta_dir / "manifest.json").read_text(encoding="utf-8"))
+
+        # Allow optional BOM JSON refresh during fast rebuild
+        bom_payload = None
+        bom_src = Path(args.bom_json) if args.bom_json else (meta_dir / "bom-priced.json")
+        if bom_src.is_file():
+            bom_payload = json.loads(bom_src.read_text(encoding="utf-8"))
+            if args.bom_json:
+                meta_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(bom_src, meta_dir / "bom-priced.json")
+        if args.part_images_dir and Path(args.part_images_dir).is_dir():
+            shutil.copytree(Path(args.part_images_dir), site_dir / "part-images", dirs_exist_ok=True)
+
+        checks_md_text = (meta_dir / "checks-summary.md").read_text(encoding="utf-8") if (meta_dir / "checks-summary.md").is_file() else None
+        checks_json_data = json.loads((meta_dir / "checks-summary.json").read_text(encoding="utf-8")) if (meta_dir / "checks-summary.json").is_file() else None
+        sanity_md_text = (meta_dir / "sanity-summary.md").read_text(encoding="utf-8") if (meta_dir / "sanity-summary.md").is_file() else None
+
+        build_site(
+            cfg=cfg,
+            site_dir=site_dir,
+            version=args.version or manifest.get("version", "dev"),
+            version_id=args.version_id,
+            commit_sha=args.commit_sha or manifest.get("commit_sha", ""),
+            copied_3d=[tuple(x) for x in manifest.get("copied_3d", [])],
+            copied_2d=[tuple(x) for x in manifest.get("copied_2d", [])],
+            copied_sch_svgs=[tuple(x) for x in manifest.get("copied_sch_svgs", [])],
+            dl_entries=[tuple(x) for x in manifest.get("dl_entries", [])],
+            has_ibom=(site_dir / "ibom-raw.html").is_file(),
+            bom_payload=bom_payload,
+            checks_md_text=checks_md_text,
+            checks_json_data=checks_json_data,
+            sanity_md_text=sanity_md_text,
+        )
+        return 0
+
+    # Full build mode
+    prefix = f"{cfg['project']['name']}-{args.version}"
     docs_assets = export_kicad_docs(cfg, out_dir, prefix, skip_3d=args.skip_3d)
+
+    if site_dir.exists():
+        shutil.rmtree(site_dir)
+    files_dir = site_dir / "files"
+    img_dir = site_dir / "renders"
+    meta_dir = site_dir / "_meta"
+    for d in (files_dir, img_dir, meta_dir):
+        d.mkdir(parents=True, exist_ok=True)
+
+    # Copy cached product thumbnails if present
+    if args.part_images_dir and Path(args.part_images_dir).is_dir():
+        shutil.copytree(Path(args.part_images_dir), site_dir / "part-images", dirs_exist_ok=True)
+
+    copied_3d: List[Tuple[str, str]] = []
+    for name, p in docs_assets.get("rendered_3d", []):
+        if p and p.is_file():
+            shutil.copy2(p, img_dir / p.name)
+            copied_3d.append((name, f"renders/{p.name}"))
+
+    copied_2d: List[Tuple[str, str]] = []
+    for label, key in (("2D Top View", "top_svg"), ("2D Bottom View", "bot_svg")):
+        p = docs_assets.get(key)
+        if p and p.is_file():
+            shutil.copy2(p, img_dir / p.name)
+            copied_2d.append((label, f"renders/{p.name}"))
+
+    copied_sch_svgs: List[Tuple[str, str]] = []
+    for svg in docs_assets.get("sch_svgs", []):
+        dst = img_dir / f"sch-{svg.name}"
+        shutil.copy2(svg, dst)
+        copied_sch_svgs.append((svg.stem, f"renders/{dst.name}"))
 
     downloads: List[Tuple[str, Path]] = []
     if args.jlcpcb_dir:
@@ -790,17 +932,70 @@ def main() -> int:
         downloads.append(("3D Mechanical Model (STEP)", docs_assets["step_file"]))
     downloads.append(("PCB Renders Pack (ZIP)", docs_assets["renders_zip"]))
 
+    dl_entries: List[Tuple[str, str, str]] = []
+    for label, src in downloads:
+        if src and src.is_file():
+            shutil.copy2(src, files_dir / src.name)
+            size_kb = max(1, src.stat().st_size // 1024)
+            dl_entries.append((label, f"files/{src.name}", f"{size_kb:,} KB"))
+
+    has_ibom = False
+    if args.ibom and Path(args.ibom).is_file():
+        shutil.copy2(Path(args.ibom), site_dir / "ibom-raw.html")
+        has_ibom = True
+
+    bom_payload = None
+    if args.bom_json and Path(args.bom_json).is_file():
+        bom_payload = json.loads(Path(args.bom_json).read_text(encoding="utf-8"))
+        shutil.copy2(Path(args.bom_json), meta_dir / "bom-priced.json")
+
+    checks_md_text = None
+    if args.checks_md and Path(args.checks_md).is_file():
+        checks_md_text = Path(args.checks_md).read_text(encoding="utf-8")
+        shutil.copy2(Path(args.checks_md), meta_dir / "checks-summary.md")
+
+    checks_json_data = None
+    if args.checks_json and Path(args.checks_json).is_file():
+        checks_json_data = json.loads(Path(args.checks_json).read_text(encoding="utf-8"))
+        shutil.copy2(Path(args.checks_json), meta_dir / "checks-summary.json")
+
+    sanity_md_text = None
+    if args.sanity_md and Path(args.sanity_md).is_file():
+        sanity_md_text = Path(args.sanity_md).read_text(encoding="utf-8")
+        shutil.copy2(Path(args.sanity_md), meta_dir / "sanity-summary.md")
+
+    # Save manifest for future fast docs-only rebuilds
+    (meta_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "version": args.version,
+                "version_id": args.version_id,
+                "commit_sha": args.commit_sha,
+                "copied_3d": copied_3d,
+                "copied_2d": copied_2d,
+                "copied_sch_svgs": copied_sch_svgs,
+                "dl_entries": dl_entries,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
     build_site(
         cfg=cfg,
-        site_dir=out_dir / "site",
-        docs_assets=docs_assets,
+        site_dir=site_dir,
         version=args.version,
-        ibom_path=Path(args.ibom) if args.ibom else None,
-        bom_json_path=Path(args.bom_json) if args.bom_json else None,
-        bom_html_path=Path(args.bom_html) if args.bom_html else None,
-        checks_md_path=Path(args.checks_md) if args.checks_md else None,
-        checks_json_path=Path(args.checks_json) if args.checks_json else None,
-        download_files=downloads,
+        version_id=args.version_id,
+        commit_sha=args.commit_sha,
+        copied_3d=copied_3d,
+        copied_2d=copied_2d,
+        copied_sch_svgs=copied_sch_svgs,
+        dl_entries=dl_entries,
+        has_ibom=has_ibom,
+        bom_payload=bom_payload,
+        checks_md_text=checks_md_text,
+        checks_json_data=checks_json_data,
+        sanity_md_text=sanity_md_text,
     )
     return 0
 

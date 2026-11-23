@@ -4,9 +4,21 @@ on:
   push:
     branches:
       - "**"
+    paths:
+      - "**.kicad_*"
+      - "assets/**"
+      - "*lib-table"
+      - "ci/**"
+      - ".github/workflows/ci.yml"
   pull_request:
     branches:
       - "**"
+    paths:
+      - "**.kicad_*"
+      - "assets/**"
+      - "*lib-table"
+      - "ci/**"
+      - ".github/workflows/ci.yml"
 
 concurrency:
   group: kicad-ci-${{ github.workflow }}-${{ github.ref }}
@@ -18,17 +30,17 @@ permissions:
 
 jobs:
   checks:
-    name: ERC, DRC & Visual Diff
+    name: ERC, DRC, Sanity & Visual Diff
     runs-on: ubuntu-latest
     container:
-      image: kicad/kicad:10.0
+      image: kicad/kicad:10.0.8
       options: --user 0:0
 
     steps:
-      - name: Checkout head
+      - name: Checkout head (shallow)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Install Python CI dependencies
         run: |
@@ -47,13 +59,16 @@ jobs:
           echo "exit_code=${rc}" >> "$GITHUB_OUTPUT"
           exit 0
 
-      - name: Audit BOM & LCSC Part Coverage
+      - name: Audit BOM, LCSC Conflicts & Local Library Tables
         run: |
           SHORT_SHA=$(printf '%s' "$GITHUB_SHA" | cut -c1-7)
           python3 ci/scripts/build_jlcpcb.py \
             --out-dir build/bom-check \
             --version "${SHORT_SHA}" \
             --bom-only
+          python3 ci/scripts/sanity_checks.py \
+            --bom-json build/bom-check/bom-merged.json \
+            --out-dir build/reports
 
       - name: Detect KiCad changes on PR
         if: github.event_name == 'pull_request'
@@ -81,7 +96,7 @@ jobs:
             --out-dir build/visual-diff
           git worktree remove --force /tmp/base_repo || rm -rf /tmp/base_repo
 
-      - name: Upload ERC/DRC Reports Artifact
+      - name: Upload ERC/DRC & Sanity Reports Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -115,15 +130,8 @@ jobs:
             if (fs.existsSync('build/reports/checks-summary.md')) {
               parts.push(fs.readFileSync('build/reports/checks-summary.md', 'utf8'));
             }
-            if (fs.existsSync('build/bom-check/bom-merged.json')) {
-              const bom = JSON.parse(fs.readFileSync('build/bom-check/bom-merged.json', 'utf8'));
-              let bomLine = `### BOM & LCSC Audit\n- **Components:** ${bom.total_components} placements (${bom.unique_parts} unique lines)`;
-              if (bom.missing_lcsc_groups > 0) {
-                bomLine += `\n- ⚠️ **Missing LCSC Part #:** ${bom.missing_lcsc_groups} line(s) (${bom.missing_lcsc_refs.join(', ')})`;
-              } else {
-                bomLine += `\n- ✅ All BOM lines have valid LCSC part numbers.`;
-              }
-              parts.push(bomLine);
+            if (fs.existsSync('build/reports/sanity-summary.md')) {
+              parts.push(fs.readFileSync('build/reports/sanity-summary.md', 'utf8'));
             }
             if (fs.existsSync('build/visual-diff/diff-summary.md')) {
               parts.push(fs.readFileSync('build/visual-diff/diff-summary.md', 'utf8'));

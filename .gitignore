@@ -44,5 +44,6 @@ build/
 __pycache__/
 *.py[cod]
 
-# Track CI rotation override table despite *.csv rule above
+# Track CI rotation tables despite *.csv rule above
 !ci/jlcpcb-rotations.csv
+!ci/jlcpcb-rotations-base.csv

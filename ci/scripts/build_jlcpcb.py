@@ -225,41 +225,38 @@ def extract_merged_bom(
     return jlc_bom_csv, merged_json, merged_payload
 
 
-def _load_rotation_rules(cfg: Dict[str, Any]) -> List[Tuple[re.Pattern, float, float, float, str]]:
-    """Load local overrides first (highest priority), then optional upstream JLC database."""
+def _load_rotation_file(path: Path, source: str) -> List[Tuple[re.Pattern, float, float, float, str]]:
     rules: List[Tuple[re.Pattern, float, float, float, str]] = []
+    if not path.is_file():
+        return rules
+    with path.open("r", encoding="utf-8-sig", newline="") as f:
+        lines = [ln for ln in f if ln.strip() and not ln.lstrip().startswith("#")]
+    for row in csv.DictReader(lines):
+        pat = (row.get("pattern") or "").strip()
+        if not pat:
+            continue
+        rot = float(row.get("rotation") or 0.0)
+        ox = float(row.get("offset_x") or 0.0)
+        oy = float(row.get("offset_y") or 0.0)
+        rules.append((re.compile(pat), rot, ox, oy, source))
+    return rules
+
+
+def _load_rotation_rules(cfg: Dict[str, Any]) -> List[Tuple[re.Pattern, float, float, float, str]]:
+    """Load project-local overrides first (highest priority), then vendored base JLCPCB table.
+    Fully deterministic — zero live network fetches."""
     root = Path(cfg["_root"])
     local_file = root / cfg["jlcpcb"]["rotations_file"]
+    base_rel = cfg["jlcpcb"].get("base_rotations_file", "ci/jlcpcb-rotations-base.csv")
+    base_file = root / base_rel
 
-    if local_file.is_file():
-        with local_file.open("r", encoding="utf-8-sig", newline="") as f:
-            lines = [ln for ln in f if ln.strip() and not ln.lstrip().startswith("#")]
-        for row in csv.DictReader(lines):
-            pat = (row.get("pattern") or "").strip()
-            if not pat:
-                continue
-            rot = float(row.get("rotation") or 0.0)
-            ox = float(row.get("offset_x") or 0.0)
-            oy = float(row.get("offset_y") or 0.0)
-            rules.append((re.compile(pat), rot, ox, oy, "local"))
-
-    upstream_url = cfg["jlcpcb"].get("upstream_rotations_url")
-    if upstream_url:
-        try:
-            req = urllib.request.Request(upstream_url, headers={"User-Agent": "kicad-ci/1.0"})
-            with urllib.request.urlopen(req, timeout=8) as resp:
-                raw = resp.read().decode("utf-8", errors="replace")
-            lines = [ln for ln in raw.splitlines() if ln.strip() and not ln.lstrip().startswith("#")]
-            for row in csv.DictReader(lines):
-                pat = (row.get("Footprint pattern") or row.get("pattern") or "").strip()
-                if not pat:
-                    continue
-                rot = float(row.get("Rotation") or row.get("rotation") or 0.0)
-                rules.append((re.compile(pat), rot, 0.0, 0.0, "upstream"))
-            print(f"[JLCPCB] Loaded upstream rotation database ({len(rules)} total rules).")
-        except Exception as exc:
-            print(f"[JLCPCB] Notice: could not fetch upstream rotation DB ({exc}); using local rules only.")
-
+    local_rules = _load_rotation_file(local_file, "local")
+    base_rules = _load_rotation_file(base_file, "base")
+    rules = local_rules + base_rules
+    print(
+        f"[JLCPCB] Loaded {len(local_rules)} local override rule(s) + "
+        f"{len(base_rules)} vendored base rule(s)."
+    )
     return rules
 
 

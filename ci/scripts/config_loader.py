@@ -25,8 +25,13 @@ def find_repo_root(start: Optional[Path] = None) -> Path:
 
 
 def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
-    root = find_repo_root()
-    path = Path(config_path) if config_path else root / "ci" / "config.yml"
+    if config_path:
+        path = Path(config_path).resolve()
+        # Config lives at <repo_root>/ci/config.yml
+        root = path.parent.parent if path.parent.name == "ci" else path.parent
+    else:
+        root = find_repo_root()
+        path = root / "ci" / "config.yml"
     if not path.is_file():
         raise FileNotFoundError(f"CI config not found at {path}")
     if yaml is None:

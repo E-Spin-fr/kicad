@@ -1,4 +1,5 @@
 # Central KiCad 10 CI/CD configuration
+# To port this pipeline to another KiCad 10 repository, edit the `project:` and `docs:` blocks below.
 project:
   name: "e-spin"
   display_name: "E-Spin PCB"
@@ -8,10 +9,10 @@ project:
   pro: "handspinner_pcb.kicad_pro"
 
 kicad:
-  # Lightweight image for fast push/PR checks (ERC/DRC/exports)
-  fast_image: "kicad/kicad:10.0"
-  # Full image for release builds (3D models + Python pcbnew for iBOM)
-  full_image: "kicad/kicad:10.0-full"
+  # Pinned versions for deterministic, reproducible CI builds
+  fast_image: "kicad/kicad:10.0.8"
+  full_image: "kicad/kicad:10.0.8-full"
+  ibom_version: "2.12.0"
 
 checks:
   # Non-blocking by default: errors never stop the build, but emit prominent
@@ -40,10 +41,10 @@ jlcpcb:
   cpl_smd_only: false
   # Extended part feeder setup fee in USD per unique extended part (for BOM cost calculator)
   extended_part_fee_usd: 3.0
-  # Local rotation/offset override table (applied on top of built-in JLCPCB rules)
+  # Project-local rotation/offset override table (highest priority)
   rotations_file: "ci/jlcpcb-rotations.csv"
-  # Optional upstream rotation database downloaded during CI if online
-  upstream_rotations_url: "https://raw.githubusercontent.com/matthewlai/JLCKicadTools/master/jlc_kicad_tools/cpl_rotations_db.csv"
+  # Vendored base rotation table (reproducible, zero live network dependency)
+  base_rotations_file: "ci/jlcpcb-rotations-base.csv"
 
 renders:
   width: 1600
@@ -73,6 +74,12 @@ docs:
   changelog: "docs/CHANGELOG.md"
   # Mintlify-style brand accent hex (used across light & dark themes)
   accent_color: "#10b981"
-  # Optional external docs link shown in the top bar
+  # Optional external docs link shown in the top bar (leave empty to hide)
   external_docs_url: "https://docs.e-spin.fr"
   external_docs_label: "docs.e-spin.fr"
+
+pages:
+  # Backing branch that stores versioned docs (/latest/, /v*/, /main/, /branches/*)
+  storage_branch: "gh-pages"
+  # Primary development branch name
+  default_branch: "main"

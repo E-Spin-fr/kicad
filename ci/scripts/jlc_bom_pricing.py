@@ -11,7 +11,10 @@ from __future__ import annotations
 
 import argparse
 import csv
+import io
 import json
+import random
+import time
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -19,24 +22,73 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from PIL import Image
+
 from config_loader import load_config
 
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) KiCad-CI-BOM/1.0"
 
 
-def _http_get_json(url: str, timeout: float = 10.0) -> Optional[Dict[str, Any]]:
-    req = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": USER_AGENT,
-            "Accept": "application/json",
-        },
-    )
+def _http_get_bytes(url: str, timeout: float = 10.0, retries: int = 3) -> Optional[bytes]:
+    """HTTP GET with exponential backoff + jitter to survive transient supplier API blips/429s."""
+    for attempt in range(retries):
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": USER_AGENT,
+                "Accept": "*/*",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.read()
+        except Exception:
+            if attempt + 1 < retries:
+                delay = (0.5 * (2**attempt)) + random.uniform(0.05, 0.35)
+                time.sleep(delay)
+    return None
+
+
+def _http_get_json(url: str, timeout: float = 10.0, retries: int = 3) -> Optional[Dict[str, Any]]:
+    raw = _http_get_bytes(url, timeout=timeout, retries=retries)
+    if not raw:
+        return None
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8", errors="replace"))
+        return json.loads(raw.decode("utf-8", errors="replace"))
     except Exception:
         return None
+
+
+def cache_part_thumbnail(
+    code: str, image_url: str, images_dir: Path, offline: bool = False
+) -> str:
+    """Download & compress a 160x160 JPEG thumbnail locally so the Pages site never relies on external hotlinks."""
+    if not code or not image_url:
+        return ""
+    images_dir.mkdir(parents=True, exist_ok=True)
+    target = images_dir / f"{code}.jpg"
+    rel_path = f"part-images/{code}.jpg"
+    if target.is_file() and target.stat().st_size > 200:
+        return rel_path
+    if offline:
+        return ""
+    raw = _http_get_bytes(image_url, timeout=8.0, retries=2)
+    if not raw:
+        return ""
+    try:
+        img = Image.open(io.BytesIO(raw))
+        if img.mode in ("RGBA", "LA", "P"):
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            rgba = img.convert("RGBA")
+            bg.paste(rgba, mask=rgba.split()[3])
+            img = bg
+        else:
+            img = img.convert("RGB")
+        img.thumbnail((160, 160), Image.Resampling.LANCZOS)
+        img.save(target, format="JPEG", quality=82, optimize=True)
+        return rel_path
+    except Exception:
+        return ""
 
 
 def _parse_jlcsearch_tiers(comp: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -1092,6 +1144,7 @@ def main() -> int:
     ap.add_argument("--out-dir", required=True, help="Output directory")
     ap.add_argument("--version", default="dev", help="Release version or SHA")
     ap.add_argument("--config", default=None, help="Path to ci/config.yml")
+    ap.add_argument("--cache-json", default=None, help="Optional previous bom-priced.json for fallback cache")
     ap.add_argument("--offline", action="store_true", help="Skip HTTP calls (offline dry-run)")
     ap.add_argument("--embedded", action="store_true", help="(Deprecated, kept for compatibility)")
     args = ap.parse_args()
@@ -1100,20 +1153,62 @@ def main() -> int:
     bom_data = json.loads(Path(args.bom_json).read_text(encoding="utf-8"))
     out_dir = Path(args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    images_dir = out_dir / "part-images"
+
+    # Load optional fallback price cache keyed by LCSC code
+    cached_by_lcsc: Dict[str, Dict[str, Any]] = {}
+    if args.cache_json and Path(args.cache_json).is_file():
+        try:
+            prev = json.loads(Path(args.cache_json).read_text(encoding="utf-8"))
+            for it in prev.get("items", []):
+                c = (it.get("lcsc") or "").strip().upper()
+                if c and it.get("found"):
+                    cached_by_lcsc[c] = it
+            print(f"[BOM-PRICE] Loaded fallback cache ({len(cached_by_lcsc)} parts).")
+        except Exception as exc:
+            print(f"[BOM-PRICE] Notice: could not load cache-json ({exc}).")
 
     unique_lcsc = sorted({it["lcsc"] for it in bom_data["items"] if it.get("lcsc")})
     print(f"[BOM-PRICE] Querying {len(unique_lcsc)} unique LCSC parts (offline={args.offline})...")
 
+    def _fetch_one(code: str) -> Dict[str, Any]:
+        if not args.offline:
+            time.sleep(0.12)
+        info = fetch_part_data(code, args.offline)
+        # Fallback to cache if live lookup failed
+        if not info.get("found") and code in cached_by_lcsc:
+            fallback = dict(cached_by_lcsc[code])
+            fallback["stale"] = True
+            return fallback
+        if info.get("product_image"):
+            local_rel = cache_part_thumbnail(code, info["product_image"], images_dir, offline=args.offline)
+            if local_rel:
+                info["product_image_remote"] = info["product_image"]
+                info["product_image"] = local_rel
+        return info
+
     fetched: Dict[str, Dict[str, Any]] = {}
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        futs = {pool.submit(fetch_part_data, code, args.offline): code for code in unique_lcsc}
+    failed_codes: List[str] = []
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futs = {pool.submit(_fetch_one, code): code for code in unique_lcsc}
         for fut in as_completed(futs):
             code = futs[fut]
             try:
-                fetched[code] = fut.result()
+                res = fut.result()
+                fetched[code] = res
+                if not res.get("found") and not args.offline:
+                    failed_codes.append(code)
             except Exception as exc:
                 print(f"[BOM-PRICE] Warning: failed {code}: {exc}")
                 fetched[code] = fetch_part_data(code, offline=True)
+                if not args.offline:
+                    failed_codes.append(code)
+
+    if failed_codes:
+        print(
+            f"::warning title=BOM Pricing Incomplete::"
+            f"Could not fetch live JLCPCB/LCSC data for {len(failed_codes)} part(s): {', '.join(sorted(failed_codes)[:10])}"
+        )
 
     enriched_items: List[Dict[str, Any]] = []
     for it in bom_data["items"]:
@@ -1125,6 +1220,7 @@ def main() -> int:
         merged.update(
             {
                 "found": info.get("found", False),
+                "stale": bool(info.get("stale", False)),
                 "mfr": info.get("mfr", ""),
                 "brand": info.get("brand", ""),
                 "description": info.get("description", ""),
